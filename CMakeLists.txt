@@ -192,7 +192,10 @@ install(DIRECTORY python/ USE_SOURCE_PERMISSIONS
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/python
         FILES_MATCHING PATTERN "*.py"
 )
-
+install(DIRECTORY scripts/ USE_SOURCE_PERMISSIONS
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts
+        FILES_MATCHING PATTERN "*"
+    )
 #############
 ## Testing ##
 #############
