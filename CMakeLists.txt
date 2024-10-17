@@ -8,7 +8,7 @@ project(centauro_horizon)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED)
-
+# find_package(PythonLibs REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -112,8 +112,9 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
-# ${catkin_INCLUDE_DIRS}
+include
+${catkin_INCLUDE_DIRS}
+${PYTHON_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -155,10 +156,10 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# catkin_install_python(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+catkin_install_python(PROGRAMS
+  python/centauro_receding_horizon.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
@@ -183,8 +184,13 @@ include_directories(
 
 # Mark other files for installation (e.g. launch and bag files, etc.)
 install(DIRECTORY launch/
-DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-FILES_MATCHING PATTERN "*.launch"
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+        FILES_MATCHING PATTERN "*.launch"
+)
+
+install(DIRECTORY python/ USE_SOURCE_PERMISSIONS
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/python
+        FILES_MATCHING PATTERN "*.py"
 )
 
 #############
