@@ -2,13 +2,43 @@
 import rospy
 import rospkg
 import casadi as cs
+import numpy as np
+import casadi_kin_dyn.py3casadi_kin_dyn as casadi_kin_dyn
+import subprocess
+import phase_manager.pymanager as pymanager
 
+from horizon.rhc.model_description import FullModelInverseDynamics
+from horizon.problem import Problem
+from horizon.utils import trajectoryGenerator, resampler_trajectory, utils, analyzer
 from centauro_horizon.msg import WBTrajectory
 from std_msgs.msg import Float64
-from horizon.problem import Problem
+
 from xbot_interface import config_options as co
 from xbot_interface import xbot_interface as xbot
+from sensor_msgs.msg import Imu
+from geometry_msgs.msg import PoseStamped, TwistStamped, Vector3
+from horizon.rhc.taskInterface import TaskInterface
+
+
 rospy.init_node('centauro_walk_srbd')
+
+def imu_callback(msg: Imu):
+    global base_pose
+    base_pose = np.zeros(7)
+    base_pose[3:] = np.array([msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w])
+
+def gt_pose_callback(msg):
+    global base_pose
+    base_pose = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z,
+                          msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z,
+                          msg.pose.orientation.w])
+    
+def gt_twist_callback(msg):
+    global base_twist
+    base_twist = np.array([msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z,
+                           msg.twist.angular.x, msg.twist.angular.y, msg.twist.angular.z])
+
+
 
 solution_publisher = rospy.Publisher('/mpc_solution', WBTrajectory, queue_size=1, tcp_nodelay=True)
 solution_time_publisher = rospy.Publisher('/mpc_solution_time', Float64, queue_size=1, tcp_nodelay=True)
@@ -128,7 +158,58 @@ else:
         'knee_pitch_4': -1.555,
         'ankle_pitch_4': -0.3,
     }
+    base_pose = np.array([0.07, 0., 0.8, 0., 0., 0., 1.])
+    base_twist = np.zeros(6)
 
+wheels = [f'j_wheel_{i + 1}' for i in range(4)]
+wheels_map = dict(zip(wheels, 4 * [0.]))
+
+ankle_yaws = [f'ankle_yaw_{i + 1}' for i in range(4)]
+ankle_yaws_map = dict(zip(ankle_yaws, [np.pi/4, -np.pi/4, -np.pi/4, np.pi/4]))
+
+arm_joints = [f'j_arm1_{i + 1}' for i in range(6)] + [f'j_arm2_{i + 1}' for i in range(6)]
+arm_joints_map = dict(zip(arm_joints, [0.75, 0.1, 0.2, -2.2, 0., -1.3, 0.75, 0.1, -0.2, -2.2, 0.0, -1.3]))
+
+torso_map = {'torso_yaw': 0.}
+
+head_map = {'d435_head_joint': 0.0, 'velodyne_joint': 0.0}
+
+fixed_joint_map = dict()
+fixed_joint_map.update(wheels_map)
+fixed_joint_map.update(ankle_yaws_map)
+fixed_joint_map.update(arm_joints_map)
+fixed_joint_map.update(torso_map)
+fixed_joint_map.update(head_map)
+
+# replace continuous joints with revolute
+urdf = urdf.replace('continuous', 'revolute')
+
+kin_dyn = casadi_kin_dyn.CasadiKinDyn(urdf, fixed_joints=fixed_joint_map)
+
+model = FullModelInverseDynamics(problem=prb,
+                                 kd=kin_dyn,
+                                 q_init=q_init,
+                                 base_init=base_pose,
+                                 fixed_joint_map=fixed_joint_map
+                                 )
+rospy.set_param('mpc/robot_description', urdf)
+bashCommand = 'rosrun robot_state_publisher robot_state_publisher robot_description:=mpc/robot_description'
+process = subprocess.Popen(bashCommand.split(), start_new_session=True)
+
+ti = TaskInterface(prb=prb, model=model)
+ti.setTaskFromYaml(rospkg.RosPack().get_path('centauro_horizon') + '/config/centauro_config.yaml')
+
+tg = trajectoryGenerator.TrajectoryGenerator()
+
+pm = pymanager.PhaseManager(ns)
+
+# phase manager handling
+c_timelines = dict()
+for c in model.cmap.keys():
+    c_timelines[c] = pm.createTimeline("f'{c}_timeline'")
+    # print(f'{c}_timeline')
+
+# print("timeline-----------------------")
 
 rate = rospy.Rate( 100 )
 while not rospy.is_shutdown():

@@ -8,6 +8,8 @@ project(centauro_horizon)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+            sensor_msgs 
+            trajectory_msgs
             message_generation
             std_msgs
             geometry_msgs)
@@ -198,6 +200,10 @@ install(DIRECTORY scripts/ USE_SOURCE_PERMISSIONS
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts
         FILES_MATCHING PATTERN "*"
     )
+install(DIRECTORY config/
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+        FILES_MATCHING PATTERN "*.yaml"
+)
 #############
 ## Testing ##
 #############
