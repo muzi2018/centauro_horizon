@@ -6,6 +6,9 @@ import numpy as np
 import casadi_kin_dyn.py3casadi_kin_dyn as casadi_kin_dyn
 import subprocess
 import phase_manager.pymanager as pymanager
+import phase_manager.pyphase as pyphase
+import phase_manager.pytimeline as pytimeline
+import phase_manager.pyrosserver as pyrosserver
 
 from horizon.rhc.model_description import FullModelInverseDynamics
 from horizon.problem import Problem
@@ -204,16 +207,43 @@ tg = trajectoryGenerator.TrajectoryGenerator()
 pm = pymanager.PhaseManager(ns)
 
 # phase manager handling
+## contact_1_timeline; contact_2_timeline; contact_3_timeline; contact_4_timeline;
 c_timelines = dict()
 for c in model.cmap.keys():
     c_timelines[c] = pm.createTimeline("f'{c}_timeline'")
-    # print(f'{c}_timeline')
+    print(f'{c}_timeline')
 
-# print("timeline-----------------------")
+
+short_stance_duration = 5
+stance_duration = 15
+flight_duration = 15
+c_i = 0
+
+
+for c in model.getContactMap(): # c: contact_1, contact_2, contact_3, contact_4
+    c_i += 1
+    # stance phase normal
+    stance_phase = c_timelines[c].createPhase(stance_duration, f'stance_{c}')
+    stance_phase_short = c_timelines[c].createPhase(short_stance_duration, f'stance_{c}_short')
+    if ti.getTask(f'contact_{c_i}') is not None:
+        stance_phase.addItem(ti.getTask(f'contact_{c_i}'))
+        stance_phase_short.addItem(ti.getTask(f'contact_{c_i}'))
+    else:
+        raise Exception('task not found')
+
+    # flight phase
+    flight_phase = c_timelines[c].createPhase(flight_duration, f'flight_{c}')
+    init_z_foot = model.kd.fk(c)(q=model.q0)['ee_pos'].elements()[2]
+    ee_vel = model.kd.frameVelocity(c, model.kd_frame)(q=model.q, qdot=model.v)['ee_vel_linear']
+    ref_trj = np.zeros(shape=[7, flight_duration])
+    ref_trj[2, :] = np.atleast_2d(tg.from_derivatives(flight_duration, init_z_foot, init_z_foot + 0.01, 0.1, [None, 0, None]))
+
+
+
 
 rate = rospy.Rate( 100 )
 while not rospy.is_shutdown():
-    print("Hello world!")
+    # print("Hello world!")
     rate.sleep()
 
 
