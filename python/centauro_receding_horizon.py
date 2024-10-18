@@ -9,6 +9,7 @@ import phase_manager.pymanager as pymanager
 import phase_manager.pyphase as pyphase
 import phase_manager.pytimeline as pytimeline
 import phase_manager.pyrosserver as pyrosserver
+import horizon.utils.analyzer as analyzer
 
 from horizon.rhc.model_description import FullModelInverseDynamics
 from horizon.problem import Problem
@@ -21,8 +22,14 @@ from xbot_interface import xbot_interface as xbot
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import PoseStamped, TwistStamped, Vector3
 from horizon.rhc.taskInterface import TaskInterface
+from horizon.rhc.gait_manager import GaitManager
+from horizon.rhc.ros.gait_manager_ros import GaitManagerROS
 
 
+from base_estimation.msg import ContactWrenches
+import cartesian_interface.roscpp_utils as roscpp
+import cartesian_interface.pyci as pyci
+import cartesian_interface.affine3
 rospy.init_node('centauro_walk_srbd')
 
 def imu_callback(msg: Imu):
@@ -210,20 +217,28 @@ pm = pymanager.PhaseManager(ns)
 ## contact_1_timeline; contact_2_timeline; contact_3_timeline; contact_4_timeline;
 c_timelines = dict()
 for c in model.cmap.keys():
-    c_timelines[c] = pm.createTimeline("f'{c}_timeline'")
-    print(f'{c}_timeline')
+    str_ = f'{c}_timeline'
+    c_timelines[c] = pm.createTimeline(str_)
+    # print(f'{c}_timeline')
+
 
 
 short_stance_duration = 5
 stance_duration = 15
 flight_duration = 15
 c_i = 0
+# print("pm type is " , type(pm.getTimelines()))
+# print("Timelines : ",pm.getTimelines()['contact_1_timeline'])
+# for key, value in pm.getTimelines().items():
+#     print(f'{key}: {value}')
 
 
 for c in model.getContactMap(): # c: contact_1, contact_2, contact_3, contact_4
     c_i += 1
     # stance phase normal
     stance_phase = c_timelines[c].createPhase(stance_duration, f'stance_{c}')
+    
+    # stance_phase.getTimelines()
     stance_phase_short = c_timelines[c].createPhase(short_stance_duration, f'stance_{c}_short')
     if ti.getTask(f'contact_{c_i}') is not None:
         stance_phase.addItem(ti.getTask(f'contact_{c_i}'))
@@ -237,11 +252,78 @@ for c in model.getContactMap(): # c: contact_1, contact_2, contact_3, contact_4
     ee_vel = model.kd.frameVelocity(c, model.kd_frame)(q=model.q, qdot=model.v)['ee_vel_linear']
     ref_trj = np.zeros(shape=[7, flight_duration])
     ref_trj[2, :] = np.atleast_2d(tg.from_derivatives(flight_duration, init_z_foot, init_z_foot + 0.01, 0.1, [None, 0, None]))
+    if ti.getTask(f'z_contact_{c_i}') is not None:
+        flight_phase.addItemReference(ti.getTask(f'z_contact_{c_i}'), ref_trj)
+    else:
+        raise Exception('task not found')
+
+    cstr = prb.createConstraint(f'{c}_vert', ee_vel[0:2], [])
+    flight_phase.addConstraint(cstr, nodes=[0, flight_duration-1])
+
+    c_ori = model.kd.fk(c)(q=model.q)['ee_rot'][2, :]
+    cost_ori = prb.createResidual(f'{c}_ori', 5. * (c_ori.T - np.array([0, 0, 1])))
+    flight_phase.addCost(cost_ori)
+
+for c in model.cmap.keys():
+    stance = c_timelines[c].getRegisteredPhase(f'stance_{c}')
+    while c_timelines[c].getEmptyNodes() > 0:
+        c_timelines[c].addPhase(stance)
 
 
+ti.model.q.setBounds(ti.model.q0, ti.model.q0, nodes=0)
+# ti.model.v.setBounds(ti.model.v0, ti.model.v0, nodes=0)
+# ti.model.a.setBounds(np.zeros([model.a.shape[0], 1]), np.zeros([model.a.shape[0], 1]), nodes=0)
+ti.model.q.setInitialGuess(ti.model.q0)
+ti.model.v.setInitialGuess(ti.model.v0)
+
+f0 = [0, 0, kin_dyn.mass() / 4 * 9.8]
+for cname, cforces in ti.model.cmap.items():
+    for c in cforces:
+        c.setInitialGuess(f0)
+
+vel_lims = model.kd.velocityLimits()
+prb.createResidual('max_vel', 1e1 * utils.barrier(vel_lims[7:] - model.v[7:]))
+prb.createResidual('min_vel', 1e1 * utils.barrier1(-1 * vel_lims[7:] - model.v[7:]))
+
+ti.finalize()
+
+rs = pyrosserver.RosServerClass(pm)
+def dont_print(*args, **kwargs):
+    pass
+ti.solver_rti.set_iteration_callback(dont_print)
+
+ti.bootstrap()
+ti.load_initial_guess()
+solution = ti.solution
+
+rate = rospy.Rate(1 / dt)
+
+contact_phase_map = {c: f'{c}_timeline' for c in model.cmap.keys()}
+# print("contact_phase_map = ", contact_phase_map) # contact_phase_map =  {'contact_1': 'contact_1_timeline', 'contact_2': 'contact_2_timeline', 'contact_3': 'contact_3_timeline', 'contact_4': 'contact_4_timeline'}
+
+gm = GaitManager(ti, pm, contact_phase_map)
 
 
-rate = rospy.Rate( 100 )
+gait_manager_ros = GaitManagerROS(gm)
+
+robot_joint_names = [elem for elem in kin_dyn.joint_names() if elem not in ['universe', 'reference']]
+
+q_robot = np.zeros(len(robot_joint_names))
+qdot_robot = np.zeros(len(robot_joint_names))
+
+wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', ContactWrenches, latch=False)
+
+
+from geometry_msgs.msg import PointStamped
+zmp_pub = rospy.Publisher('zmp_pub', PointStamped, queue_size=10)
+# zmp_f = ti.getTask('zmp')._zmp_fun()
+zmp_point = PointStamped()
+
+c_mean_pub = rospy.Publisher('c_mean_pub', PointStamped, queue_size=10)
+c_mean_point = PointStamped()
+print("okokokok")
+
+
 while not rospy.is_shutdown():
     # print("Hello world!")
     rate.sleep()
