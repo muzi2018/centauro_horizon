@@ -24,12 +24,13 @@ from geometry_msgs.msg import PoseStamped, TwistStamped, Vector3
 from horizon.rhc.taskInterface import TaskInterface
 from horizon.rhc.gait_manager import GaitManager
 from horizon.rhc.ros.gait_manager_ros import GaitManagerROS
-
-
+from geometry_msgs.msg import Wrench
+from scipy.spatial.transform import Rotation
 from base_estimation.msg import ContactWrenches
 import cartesian_interface.roscpp_utils as roscpp
 import cartesian_interface.pyci as pyci
 import cartesian_interface.affine3
+import time
 rospy.init_node('centauro_walk_srbd')
 
 def imu_callback(msg: Imu):
@@ -47,6 +48,63 @@ def gt_twist_callback(msg):
     global base_twist
     base_twist = np.array([msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z,
                            msg.twist.angular.x, msg.twist.angular.y, msg.twist.angular.z])
+
+def set_state_from_robot(robot_joint_names, q_robot, qdot_robot, fixed_joint_map={}):
+    robot.sense()
+
+    # manage fixed joints if any
+    q_map = robot.getJointPositionMap()
+
+    for fixed_joint in fixed_joint_map:
+        if fixed_joint in q_map:
+            del q_map[fixed_joint]
+
+    q_index = 0
+    for j_name in robot_joint_names:
+        q_robot[q_index] = q_map[j_name]
+        q_index += 1
+
+    # numerical problem: two quaternions can represent the same rotation
+    # if difference between the base orientation in the state x and the sensed one base_pose < 0, change sign
+    state_quat_conjugate = np.copy(x_opt[3:7, 0])
+    state_quat_conjugate[:3] *= -1.0
+
+    # normalize the quaternion
+    state_quat_conjugate = state_quat_conjugate / np.linalg.norm(x_opt[3:7, 0])
+    diff_quat = utils.quaternion_multiply(base_pose[3:], state_quat_conjugate)
+
+    if diff_quat[3] < 0:
+        base_pose[3:] = -base_pose[3:]
+
+    q = np.hstack([base_pose, q_robot])
+    model.q.setBounds(q, q, nodes=0)
+
+    qdot = robot.getJointVelocity()
+    qdot_map = robot.eigenToMap(qdot)
+
+    for fixed_joint in fixed_joint_map:
+        if fixed_joint in qdot_map:
+            del qdot_map[fixed_joint]
+
+    qdot_index = 0
+    for j_name in robot_joint_names:
+        qdot_robot[qdot_index] = qdot_map[j_name]
+        qdot_index += 1
+
+    # VELOCITY OF PINOCCHIO IS LOCAL, BASE_TWIST FROM  XBOTCORE IS GLOBAL:
+    # transform it in local
+    r_base = Rotation.from_quat(base_pose[3:]).as_matrix()
+
+    r_adj = np.zeros([6, 6])
+    r_adj[:3, :3] = r_base.T
+    r_adj[3:6, 3:6] = r_base.T
+
+    # rotate in the base frame the relative velocity (ee_v_distal - ee_v_base_distal)
+    ee_rel = r_adj @ base_twist
+
+    qdot = np.hstack([ee_rel, qdot_robot])
+    model.v.setBounds(qdot, qdot, nodes=0)
+
 
 
 
@@ -182,7 +240,7 @@ arm_joints_map = dict(zip(arm_joints, [0.75, 0.1, 0.2, -2.2, 0., -1.3, 0.75, 0.1
 
 torso_map = {'torso_yaw': 0.}
 
-head_map = {'d435_head_joint': 0.0, 'velodyne_joint': 0.0}
+head_map = {"dagana_2_claw_joint": 0.0,'d435_head_joint': 0.0, 'velodyne_joint': 0.0}
 
 fixed_joint_map = dict()
 fixed_joint_map.update(wheels_map)
@@ -311,7 +369,7 @@ robot_joint_names = [elem for elem in kin_dyn.joint_names() if elem not in ['uni
 q_robot = np.zeros(len(robot_joint_names))
 qdot_robot = np.zeros(len(robot_joint_names))
 
-wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', ContactWrenches, latch=False)
+wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', ContactWrenches, latch=False, queue_size =1)
 
 
 from geometry_msgs.msg import PointStamped
@@ -321,11 +379,65 @@ zmp_point = PointStamped()
 
 c_mean_pub = rospy.Publisher('c_mean_pub', PointStamped, queue_size=10)
 c_mean_point = PointStamped()
-print("okokokok")
 
 
 while not rospy.is_shutdown():
-    # print("Hello world!")
+    # update BaseEstimation
+    wrench_msg = ContactWrenches()
+    wrench_msg.header.stamp = rospy.Time.now()
+    for frame in model.getForceMap():
+        wrench_msg.names.append(frame)
+        wrench_msg.wrenches.append(Wrench(force=Vector3(x=solution[f'f_{frame}'][0, 0],
+                                                        y=solution[f'f_{frame}'][1, 0],
+                                                        z=solution[f'f_{frame}'][2, 0]),
+                                          torque=Vector3(x=0., y=0., z=0.)))
+    t0 = time.time()
+    wrench_pub.publish(wrench_msg)
+
+    # set initial state and initial guess
+    shift_num = -1
+
+    x_opt = solution['x_opt']
+    xig = np.roll(x_opt, shift_num, axis=1)
+    for i in range(abs(shift_num)):
+        xig[:, -1 - i] = x_opt[:, -1]
+
+    prb.getState().setInitialGuess(xig)
+    prb.setInitialState(x0=xig[:, 0])
+
+    # closed loop
+    if closed_loop:
+        set_state_from_robot(robot_joint_names=robot_joint_names, q_robot=q_robot, qdot_robot=qdot_robot)
+
+    pm.shift()
+
+    # publishes to ros phase manager info
+    rs.run()
+
+    # receive msgs from ros topic and send commands to robot
+    gait_manager_ros.run()
+
+    ti.rti()
+    solution = ti.solution
+
+    sol_msg = WBTrajectory()
+    sol_msg.header.frame_id = 'world'
+    sol_msg.header.stamp = rospy.Time.now()
+
+    sol_msg.joint_names = robot_joint_names
+
+    sol_msg.q = solution['q'][:, 0].tolist()
+    sol_msg.v = solution['v'][:, 0].tolist()
+    sol_msg.a = solution['a'][:, 0].tolist()
+
+    for frame in model.getForceMap():
+        sol_msg.force_names.append(frame)
+        sol_msg.f.append(
+            Vector3(x=solution[f'f_{frame}'][0, 0], y=solution[f'f_{frame}'][1, 0], z=solution[f'f_{frame}'][2, 0]))
+
+    solution_publisher.publish(sol_msg)
+    solution_time_publisher.publish(Float64(data=time.time() - t0))
+
     rate.sleep()
 
 

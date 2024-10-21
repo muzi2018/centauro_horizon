@@ -8,11 +8,17 @@ project(centauro_horizon)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+            roscpp
             sensor_msgs 
             trajectory_msgs
             message_generation
             std_msgs
             geometry_msgs)
+find_package(Eigen3 REQUIRED)
+find_package(urdfdom REQUIRED)
+find_package(pinocchio REQUIRED)
+find_package(XBotInterface REQUIRED)
+
 # find_package(PythonLibs REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -103,10 +109,10 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES centauro_horizon
-#  CATKIN_DEPENDS other_catkin_pkg
-#  DEPENDS system_lib
+        INCLUDE_DIRS include
+        LIBRARIES
+        CATKIN_DEPENDS message_runtime std_msgs geometry_msgs
+        DEPENDS
 )
 
 ###########
@@ -117,14 +123,32 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 include
+${EIGEN3_INCLUDE_DIRS}
 ${catkin_INCLUDE_DIRS}
+${PINOCCHIO_INCLUDE_DIRS}
 ${PYTHON_INCLUDE_DIRS}
+${XBotInterface_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/centauro_horizon.cpp
-# )
+add_library(mpc_handler
+    src/mpc_handler.cpp
+    src/mpc_joint_handler.cpp
+    src/resampler.cpp
+)
+target_link_libraries(mpc_handler
+    yaml-cpp
+    ${catkin_LIBRARIES}
+    ${XBotInterface_LIBRARIES}
+    ${PINOCCHIO_LIBRARIES}
+    ${urdfdom_LIBRARIES}
+)
+
+install(TARGETS mpc_handler
+ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -134,8 +158,19 @@ ${PYTHON_INCLUDE_DIRS}
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/centauro_horizon_node.cpp)
+add_executable(controller
+    src/controller_node.cpp
+    src/controller.cpp)
 
+target_link_libraries(controller
+    mpc_handler
+    ${catkin_LIBRARIES})
+
+install(TARGETS controller
+ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
