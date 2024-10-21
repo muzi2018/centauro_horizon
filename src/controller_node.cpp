@@ -3,6 +3,7 @@
 
 int main(int argc, char** argv)
 {
+    std::cout << "-------- controller_node --------------------------------" << std::endl;
     ros::init(argc, argv, "controller_node");
     ros::NodeHandle nh(""), nhpr("~");
 
