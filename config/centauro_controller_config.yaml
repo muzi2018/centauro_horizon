@@ -23,7 +23,7 @@ fixed_joints:
     j_arm2_5: 0.0
     j_arm2_6: -1.3
     torso_yaw: 0.0
-   #  dagana_2_claw_joint: 0.0
+    dagana_2_claw_joint: 0.0
     d435_head_joint: 0.0
     velodyne_joint: 0.0
 

@@ -240,7 +240,7 @@ arm_joints_map = dict(zip(arm_joints, [0.75, 0.1, 0.2, -2.2, 0., -1.3, 0.75, 0.1
 
 torso_map = {'torso_yaw': 0.}
 
-head_map = {'d435_head_joint': 0.0, 'velodyne_joint': 0.0}
+head_map = {"dagana_2_claw_joint": 0.0,'d435_head_joint': 0.0, 'velodyne_joint': 0.0}
 
 fixed_joint_map = dict()
 fixed_joint_map.update(wheels_map)
@@ -369,7 +369,7 @@ robot_joint_names = [elem for elem in kin_dyn.joint_names() if elem not in ['uni
 q_robot = np.zeros(len(robot_joint_names))
 qdot_robot = np.zeros(len(robot_joint_names))
 
-wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', ContactWrenches, latch=False)
+wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', ContactWrenches, latch=False, queue_size =1)
 
 
 from geometry_msgs.msg import PointStamped
