@@ -311,7 +311,7 @@ robot_joint_names = [elem for elem in kin_dyn.joint_names() if elem not in ['uni
 q_robot = np.zeros(len(robot_joint_names))
 qdot_robot = np.zeros(len(robot_joint_names))
 
-wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', ContactWrenches, latch=False)
+wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', ContactWrenches, latch=False, queue_size=1)
 
 
 from geometry_msgs.msg import PointStamped
