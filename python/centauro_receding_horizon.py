@@ -266,7 +266,7 @@ process = subprocess.Popen(bashCommand.split(), start_new_session=True)
 
 ti = TaskInterface(prb=prb, model=model)
 ti.setTaskFromYaml(rospkg.RosPack().get_path('centauro_horizon') + '/config/centauro_config.yaml')
-
+exit()
 tg = trajectoryGenerator.TrajectoryGenerator()
 
 pm = pymanager.PhaseManager(ns)
