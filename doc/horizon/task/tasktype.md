@@ -27,6 +27,7 @@ class TaskInterface(ProblemInterface):
 ```
 
 1. CartesianTask
+   cartesian_type = 'position'
 2. ContactTask
 3. SurfaceContact
 4. VertexContact
