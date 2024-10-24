@@ -427,7 +427,32 @@ for c in model.cmap.keys():
     while c_timelines[c].getEmptyNodes() > 0:
         # print("EmptyNodes: ", c_timelines[c].getEmptyNodes())
         c_timelines[c].addPhase(stance)
+
+
+
+
+import colorama
+def printElemInfo(elem):
+    print(f"  |     Phase position: {elem.getPosition()}")
+    print(f"  |     Phase duration: {elem.getNNodes()}")
+    print(f"  |     Active nodes of phase: {elem.getActiveNodes()}")
+    print(f"  |_____________________________________________________________|")
+
+def printAllPhases(timeline: pytimeline.Timeline, add_element_info=False):
+    elem_num = 1
+    print(f"{colorama.Style.BRIGHT}==================== ALL PHASES: ===================={colorama.Style.RESET_ALL}")
+    for elem in timeline.getPhases():
+        print(f"{colorama.Fore.RED}- {elem_num}: {colorama.Style.RESET_ALL}", end="")
+        print(f"{elem.getName()}", end="")
+        print(f": {elem}")
+        if add_element_info:
+            printElemInfo(elem)
+        elem_num += 1
+
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+printAllPhases(c_timelines['contact_1'], add_element_info=True)
 # exit()
+
 
 ti.model.q.setBounds(ti.model.q0, ti.model.q0, nodes=0)
 # ti.model.v.setBounds(ti.model.v0, ti.model.v0, nodes=0)
@@ -446,7 +471,8 @@ prb.createResidual('min_vel', 1e1 * utils.barrier1(-1 * vel_lims[7:] - model.v[7
 
 ti.finalize()
 
-rs = pyrosserver.RosServerClass(pm)
+# /phase_manager_ros_server_class
+rs = pyrosserver.RosServerClass(pm) 
 def dont_print(*args, **kwargs):
     pass
 ti.solver_rti.set_iteration_callback(dont_print)
