@@ -451,7 +451,7 @@ def printAllPhases(timeline: pytimeline.Timeline, add_element_info=False):
 
 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 printAllPhases(c_timelines['contact_1'], add_element_info=True)
-# exit()
+exit()
 
 
 ti.model.q.setBounds(ti.model.q0, ti.model.q0, nodes=0)
