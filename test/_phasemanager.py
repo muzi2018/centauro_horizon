@@ -227,6 +227,10 @@ wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', Con
 while not rospy.is_shutdown():
 
     pm.shift()
+    timeline_1 = pm.getTimelines('contact_1_timeline')
+    printAllPhases(timeline_1, add_element_info=True)
+
+
     gait_manager_ros.run()
     rate.sleep()
 
