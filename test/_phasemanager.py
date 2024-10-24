@@ -222,7 +222,11 @@ ti.bootstrap()
 ti.load_initial_guess()
 solution = ti.solution
 rate = rospy.Rate(1 / dt)
+wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', ContactWrenches, latch=False, queue_size =1)
+
 while not rospy.is_shutdown():
+
+    pm.shift()
     gait_manager_ros.run()
     rate.sleep()
 
