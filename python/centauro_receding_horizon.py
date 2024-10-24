@@ -472,15 +472,11 @@ contact_phase_map = {c: f'{c}_timeline' for c in model.cmap.keys()}
 # print("contact_phase_map = ", contact_phase_map) # contact_phase_map =  {'contact_1': 'contact_1_timeline', 'contact_2': 'contact_2_timeline', 'contact_3': 'contact_3_timeline', 'contact_4': 'contact_4_timeline'}
 
 gm = GaitManager(ti, pm, contact_phase_map)
-
-
 gait_manager_ros = GaitManagerROS(gm)
 
 robot_joint_names = [elem for elem in kin_dyn.joint_names() if elem not in ['universe', 'reference']]
-
 q_robot = np.zeros(len(robot_joint_names))
 qdot_robot = np.zeros(len(robot_joint_names))
-
 wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', ContactWrenches, latch=False, queue_size =1)
 
 
@@ -488,7 +484,6 @@ from geometry_msgs.msg import PointStamped
 zmp_pub = rospy.Publisher('zmp_pub', PointStamped, queue_size=10)
 # zmp_f = ti.getTask('zmp')._zmp_fun()
 zmp_point = PointStamped()
-
 c_mean_pub = rospy.Publisher('c_mean_pub', PointStamped, queue_size=10)
 c_mean_point = PointStamped()
 
@@ -508,12 +503,10 @@ while not rospy.is_shutdown():
 
     # set initial state and initial guess
     shift_num = -1
-
     x_opt = solution['x_opt']
     xig = np.roll(x_opt, shift_num, axis=1)
     for i in range(abs(shift_num)):
         xig[:, -1 - i] = x_opt[:, -1]
-
     prb.getState().setInitialGuess(xig)
     prb.setInitialState(x0=xig[:, 0])
 
