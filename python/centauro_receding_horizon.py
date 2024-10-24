@@ -35,8 +35,25 @@ import time
 
 
 import colorama
-exit()
+# exit()
 rospy.init_node('centauro_walk_srbd')
+
+def printElemInfo(elem):
+    print(f"  |     Phase position: {elem.getPosition()}")
+    print(f"  |     Phase duration: {elem.getNNodes()}")
+    print(f"  |     Active nodes of phase: {elem.getActiveNodes()}")
+    print(f"  |_____________________________________________________________|")
+
+def printAllPhases(timeline: pytimeline.Timeline, add_element_info=False):
+    elem_num = 1
+    print(f"{colorama.Style.BRIGHT}==================== ALL PHASES: ===================={colorama.Style.RESET_ALL}")
+    for elem in timeline.getPhases():
+        print(f"{colorama.Fore.RED}- {elem_num}: {colorama.Style.RESET_ALL}", end="")
+        print(f"{elem.getName()}", end="")
+        print(f": {elem}")
+        if add_element_info:
+            printElemInfo(elem)
+        elem_num += 1
 
 def imu_callback(msg: Imu):
     global base_pose
@@ -432,9 +449,10 @@ for c in model.cmap.keys():
     while c_timelines[c].getEmptyNodes() > 0:
         # print("EmptyNodes: ", c_timelines[c].getEmptyNodes())
         c_timelines[c].addPhase(stance)
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    printAllPhases(c_timelines[c], add_element_info=True)
 
-
-
+exit()
 
 
 

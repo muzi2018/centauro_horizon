@@ -31,35 +31,7 @@ import cartesian_interface.roscpp_utils as roscpp
 import cartesian_interface.pyci as pyci
 import cartesian_interface.affine3
 import time
-
-
-
 import colorama
-ns = 10
-dt = 0.01
-prb = Problem(ns, receding=True)
-prb.setDt(dt)
-
-pm = pymanager.PhaseManager(ns)
-timeline_1 = pm.createTimeline('timeline_1')
-
-
-# adding stuff to the problem
-a = prb.createStateVariable('a', 1)
-par = prb.createParameter('par', 1)
-cnsrt_1 = prb.createConstraint('cnsrt_1', a / 2, nodes=[])
-
-phase_1 = timeline_1.createPhase(4, 'phase_1')
-# phase_1.addParameterValues(par, np.array([[1., 3., 4.]]), [0, 2, 3])
-
-phase_2 = timeline_1.createPhase(6, 'phase_2')
-# phase_2.addVariableBounds(a, np.array([[-1, -2, -3, -4, -5]]), np.array([[1, 2, 3, 4, 5]]))
-# phase_2.addConstraint(cnsrt_1, nodes=[0, 3])
-
-phase_inserted = timeline_1.createPhase(3, 'phase_inserted')
-
-timeline_1.addPhase(phase_1)
-timeline_1.addPhase(phase_2)
 
 
 def printElemInfo(elem):
@@ -79,12 +51,62 @@ def printAllPhases(timeline: pytimeline.Timeline, add_element_info=False):
             printElemInfo(elem)
         elem_num += 1
 
-print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-printAllPhases(timeline_1, add_element_info=True)
 
-for i in range(5):
-    timeline_1.shift()
-    print(i+1," SHIFTING PHASES: ")
-    printAllPhases(timeline_1)
+
+
+
+
+
+ns = 30
+stance_duration = 15
+flight_duration = 15
+contacts ={'contact_1', 'contact_2', 'contact_3', 'contact_4'}
+# phase manager 
+pm = pymanager.PhaseManager(ns, True)
+# Create timelines in phase manager: contact_1_timeline; contact_2_timeline; contact_3_timeline; contact_4_timeline; -> 40 nodes
+c_timelines = dict()
+for c in contacts:
+    str_ = f'{c}_timeline'
+    c_timelines[c] = pm.createTimeline(str_)
+
+
+
+# Register phases in timelines: stance_phase, flight_phases
+c_i = 0
+for c in contacts: # c: contact_1, contact_2, contact_3, contact_4
+    c_i += 1
+    # stance phase normal
+    stance_phase = c_timelines[c].createPhase(stance_duration, f'stance_{c}') # register stance_phase
+    # flight phase
+    flight_phase = c_timelines[c].createPhase(flight_duration, f'flight_{c}') # register flight_phase
+
+# Add phasese in timelines
+for c in contacts:
+    stance = c_timelines[c].getRegisteredPhase(f'stance_{c}')
+    while c_timelines[c].getEmptyNodes() > 0:
+        c_timelines[c].addPhase(stance)
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    printAllPhases(c_timelines[c], add_element_info=True)
+
+
+# gm = GaitManager(ti, pm, contact_phase_map)
+
+# pm.shift()
+
+# for c in contacts:
+#     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~2~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+#     printAllPhases(c_timelines[c], add_element_info=True)
+
+
+# print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+# printAllPhases(timeline_1, add_element_info=True)
+
+# for i in range(5):
+#     timeline_1.shift()
+#     print(i+1," SHIFTING PHASES: ")
+#     printAllPhases(timeline_1)
 
 exit()
+
+
+
