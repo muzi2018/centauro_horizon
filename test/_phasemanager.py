@@ -207,6 +207,25 @@ contact_phase_map = {c: f'{c}_timeline' for c in model.cmap.keys()}
 gm = GaitManager(ti, pm, contact_phase_map)
 gait_manager_ros = GaitManagerROS(gm)
 
+ti.model.q.setBounds(ti.model.q0, ti.model.q0, nodes=0)
+ti.model.q.setInitialGuess(ti.model.q0)
+ti.model.v.setInitialGuess(ti.model.v0)
+f0 = [0, 0, kin_dyn.mass() / 4 * 9.8]
+for cname, cforces in ti.model.cmap.items():
+    for c in cforces:
+        c.setInitialGuess(f0)
+vel_lims = model.kd.velocityLimits()
+prb.createResidual('max_vel', 1e1 * utils.barrier(vel_lims[7:] - model.v[7:]))
+prb.createResidual('min_vel', 1e1 * utils.barrier1(-1 * vel_lims[7:] - model.v[7:]))
+ti.finalize()
+ti.bootstrap()
+ti.load_initial_guess()
+solution = ti.solution
+rate = rospy.Rate(1 / dt)
+while not rospy.is_shutdown():
+    gait_manager_ros.run()
+    rate.sleep()
+
 
 # ns = 30
 # stance_duration = 15
