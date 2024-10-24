@@ -31,7 +31,29 @@ import cartesian_interface.roscpp_utils as roscpp
 import cartesian_interface.pyci as pyci
 import cartesian_interface.affine3
 import time
+
+
+
+import colorama
+# exit()
 rospy.init_node('centauro_walk_srbd')
+
+def printElemInfo(elem):
+    print(f"  |     Phase position: {elem.getPosition()}")
+    print(f"  |     Phase duration: {elem.getNNodes()}")
+    print(f"  |     Active nodes of phase: {elem.getActiveNodes()}")
+    print(f"  |_____________________________________________________________|")
+
+def printAllPhases(timeline: pytimeline.Timeline, add_element_info=False):
+    elem_num = 1
+    print(f"{colorama.Style.BRIGHT}==================== ALL PHASES: ===================={colorama.Style.RESET_ALL}")
+    for elem in timeline.getPhases():
+        print(f"{colorama.Fore.RED}- {elem_num}: {colorama.Style.RESET_ALL}", end="")
+        print(f"{elem.getName()}", end="")
+        print(f": {elem}")
+        if add_element_info:
+            printElemInfo(elem)
+        elem_num += 1
 
 def imu_callback(msg: Imu):
     global base_pose
@@ -265,11 +287,112 @@ bashCommand = 'rosrun robot_state_publisher robot_state_publisher robot_descript
 process = subprocess.Popen(bashCommand.split(), start_new_session=True)
 
 ti = TaskInterface(prb=prb, model=model)
+{   ## Comment
+    # task_creation_funcs: Dict[str, Callable[..., Task]] = {}
+    # task_creation_funcs[Cartesian] = CartesianTask
+    # task_creation_funcs[Contact] = ContactTask
+    # task_creation_funcs[Wrench] = SurfaceContact
+    # task_creation_funcs[VertexForce] = VertexContact
+    # task_creation_funcs[Postural] = PosturalTask
+    # task_creation_funcs[JointLimits] = JointLimitsTask
+    # task_creation_funcs[Regularization] = RegularizationTask
+    # task_creation_funcs[Rolling] = RollingTask
+    # task_creation_funcs[Zmp] = ZmpTask
+    # self.task_list = []
+}
+
+
 ti.setTaskFromYaml(rospkg.RosPack().get_path('centauro_horizon') + '/config/centauro_config.yaml')
+{   ## Comment
+    # def setTaskFromYaml(self, centauro_config.yaml):
+    #   for task_descr in self.task_desrc_list:
+    #        ...
+    #       self.setTaskFromDict(task_descr)
+
+    #   task_descr: {'type': 'Cartesian', 'distal_link': 'base_link', 'indices': [0, 1], 'nodes': '${range(N-10, N)}', 'weight': 5.0, 'name': 'base_xy', 'fun_type': 'residual'}
+
+    # def setTaskFromDict(self, task_descr):
+    #   task = self.generateTaskFromDict(task_descr) 
+    #   self.setTask(task)
+    #   return task
+
+    # def generateTaskFromDict(self, task_descr):
+        # shortcuts = {
+        #     'nodes': {'final': self.prb.getNNodes() - 1, 'all': list(range(self.prb.getNNodes()))},
+        # }
+        # task_descr_resolved = YamlParser.resolve(task_descr, shortcuts)
+        # task_description_with_subtasks = self._handle_subtask(task_descr_resolved)
+        # task_specific = self.generateTaskContext(task_description_with_subtasks)
+        # task = task_factory.create(task_specific)
+        # return task
+}
+
+
+# task_desrc_list: [
+#     {'type': 'Cartesian', 'distal_link': 'base_link', 'indices': [0, 1], 'nodes': '${range(N-10, N)}', 'weight': 5.0, 'name': 'base_xy', 'fun_type': 'residual'}, 
+#     {'type': 'Cartesian', 'distal_link': 'base_link', 'indices': [2], 'nodes': 'all', 'weight': 5.0, 'name': 'base_z', 'fun_type': 'residual'}, 
+#     {'type': 'Cartesian', 'distal_link': 'base_link', 'indices': [3, 4, 5], 'nodes': '${range(N-5, N)}', 'cartesian_type': 'position', 'weight': 10.0, 'name': 'base_orientation', 'fun_type': 'residual'}, 
+#     {'type': 'Contact', 'subtask': ['interaction_1', 'zero_velocity_1'], 'name': 'contact_1', 'fun_type': 'constraint'}, 
+#     {'type': 'Contact', 'subtask': ['interaction_2', 'zero_velocity_2'], 'name': 'contact_2', 'fun_type': 'constraint'}, 
+#     {'type': 'Contact', 'subtask': ['interaction_3', 'zero_velocity_3'], 'name': 'contact_3', 'fun_type': 'constraint'}, 
+#     {'type': 'Contact', 'subtask': ['interaction_4', 'zero_velocity_4'], 'name': 'contact_4', 'fun_type': 'constraint'}, 
+#     {'type': 'Postural', 'weight': 0.5, 'indices': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'nodes': 'all', 'name': 'joint_posture', 'fun_type': 'residual'}, 
+#     {'type': 'Zmp', 'weight': 100.0, 'name': 'zmp', 'fun_type': 'residual'}, 
+#     {'type': 'Regularization', 'nodes': 'all', 'weight': {'acceleration': 0.01, 'force': 0.001}, 'name': 'joint_regularization', 'fun_type': 'residual'}, 
+#     {'type': 'Cartesian', 'distal_link': 'contact_1', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_1', 'fun_type': 'residual'}, 
+#     {'type': 'Cartesian', 'distal_link': 'contact_2', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_2', 'fun_type': 'residual'}, 
+#     {'type': 'Cartesian', 'distal_link': 'contact_3', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_3', 'fun_type': 'residual'}, 
+#     {'type': 'Cartesian', 'distal_link': 'contact_4', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_4', 'fun_type': 'residual'}
+#     ]
+
+
+# non_active_task: [
+#     {'type': 'Cartesian', 'distal_link': 'contact_1', 'indices': [0, 1, 2], 'cartesian_type': 'velocity', 'name': 'zero_velocity_1'}, 
+#     {'type': 'Cartesian', 'distal_link': 'contact_2', 'indices': [0, 1, 2], 'cartesian_type': 'velocity', 'name': 'zero_velocity_2'}, 
+#     {'type': 'Cartesian', 'distal_link': 'contact_3', 'indices': [0, 1, 2], 'cartesian_type': 'velocity', 'name': 'zero_velocity_3'}, 
+#     {'type': 'Cartesian', 'distal_link': 'contact_4', 'indices': [0, 1, 2], 'cartesian_type': 'velocity', 'name': 'zero_velocity_4'}, 
+#     {'type': 'VertexForce', 'frame': 'contact_1', 'fn_min': 10.0, 'enable_fc': True, 'friction_coeff': 0.5, 'vertex_frames': ['contact_1'], 'name': 'interaction_1'}, 
+#     {'type': 'VertexForce', 'frame': 'contact_2', 'fn_min': 10.0, 'enable_fc': True, 'friction_coeff': 0.5, 'vertex_frames': ['contact_2'], 'name': 'interaction_2'}, 
+#     {'type': 'VertexForce', 'frame': 'contact_3', 'fn_min': 10.0, 'enable_fc': True, 'friction_coeff': 0.5, 'vertex_frames': ['contact_3'], 'name': 'interaction_3'}, 
+#     {'type': 'VertexForce', 'frame': 'contact_4', 'fn_min': 10.0, 'enable_fc': True, 'friction_coeff': 0.5, 'vertex_frames': ['contact_4'], 'name': 'interaction_4'}, 
+#     {'type': 'Postural', 'weight': 1.0, 'indices': [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30], 'nodes': 'all', 'name': 'joint_posture_ub'}
+#     ]
+
+# solver_options: 
+# {'type': 'ilqr', 'ipopt.linear_solver': 'ma57', 'ipopt.tol': 0.1, 'ipopt.constr_viol_tol': 0.01, 'ilqr.constraint_violation_threshold': 0.01, 'ipopt.print_level': 5, 'ipopt.suppress_all_output': 'yes', 'ipopt.sb': 'yes', 'ilqr.suppress_all_output': 'yes', 'ilqr.codegen_enabled': True, 'ilqr.codegen_workdir': '/tmp/tyhio', 'ilqr.enable_gn': True, 'ilqr.hxx_reg_base': 0.0, 'ilqr.n_threads': 0, 'print_time': 0}
+
+
+
+# task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'base_link', 'indices': [0, 1], 'nodes': range(30, 40), 'weight': 5.0, 'name': 'base_xy', 'fun_type': 'residual'}
+# task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'base_link', 'indices': [2], 'nodes': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40], 'weight': 5.0, 'name': 'base_z', 'fun_type': 'residual'}
+# task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'base_link', 'indices': [3, 4, 5], 'nodes': range(35, 40), 'cartesian_type': 'position', 'weight': 10.0, 'name': 'base_orientation', 'fun_type': 'residual'}
+# task_descr_resolved:  {'type': 'Contact', 'subtask': ['interaction_1', 'zero_velocity_1'], 'name': 'contact_1', 'fun_type': 'constraint'}
+# task_descr_resolved:  {'type': 'VertexForce', 'frame': 'contact_1', 'fn_min': 10.0, 'enable_fc': True, 'friction_coeff': 0.5, 'vertex_frames': ['contact_1'], 'name': 'interaction_1'}
+# task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'contact_1', 'indices': [0, 1, 2], 'cartesian_type': 'velocity', 'name': 'zero_velocity_1'}
+# task_descr_resolved:  {'type': 'Contact', 'subtask': ['interaction_2', 'zero_velocity_2'], 'name': 'contact_2', 'fun_type': 'constraint'}
+# task_descr_resolved:  {'type': 'VertexForce', 'frame': 'contact_2', 'fn_min': 10.0, 'enable_fc': True, 'friction_coeff': 0.5, 'vertex_frames': ['contact_2'], 'name': 'interaction_2'}
+# task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'contact_2', 'indices': [0, 1, 2], 'cartesian_type': 'velocity', 'name': 'zero_velocity_2'}
+# task_descr_resolved:  {'type': 'Contact', 'subtask': ['interaction_3', 'zero_velocity_3'], 'name': 'contact_3', 'fun_type': 'constraint'}
+# task_descr_resolved:  {'type': 'VertexForce', 'frame': 'contact_3', 'fn_min': 10.0, 'enable_fc': True, 'friction_coeff': 0.5, 'vertex_frames': ['contact_3'], 'name': 'interaction_3'}
+# task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'contact_3', 'indices': [0, 1, 2], 'cartesian_type': 'velocity', 'name': 'zero_velocity_3'}
+# task_descr_resolved:  {'type': 'Contact', 'subtask': ['interaction_4', 'zero_velocity_4'], 'name': 'contact_4', 'fun_type': 'constraint'}
+# task_descr_resolved:  {'type': 'VertexForce', 'frame': 'contact_4', 'fn_min': 10.0, 'enable_fc': True, 'friction_coeff': 0.5, 'vertex_frames': ['contact_4'], 'name': 'interaction_4'}
+# task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'contact_4', 'indices': [0, 1, 2], 'cartesian_type': 'velocity', 'name': 'zero_velocity_4'}
+# task_descr_resolved:  {'type': 'Postural', 'weight': 0.5, 'indices': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'nodes': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40], 'name': 'joint_posture', 'fun_type': 'residual'}
+# task_descr_resolved:  {'type': 'Zmp', 'weight': 100.0, 'name': 'zmp', 'fun_type': 'residual'}
+# task_descr_resolved:  {'type': 'Regularization', 'nodes': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40], 'weight': {'a': 0.01, 'f_contact_1': 0.001, 'f_contact_2': 0.001, 'f_contact_3': 0.001, 'f_contact_4': 0.001}, 'name': 'joint_regularization', 'fun_type': 'residual'}
+# task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'contact_1', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_1', 'fun_type': 'residual'}
+# task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'contact_2', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_2', 'fun_type': 'residual'}
+# task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'contact_3', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_3', 'fun_type': 'residual'}
+# task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'contact_4', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_4', 'fun_type': 'residual'}
+
+
+
+
 
 tg = trajectoryGenerator.TrajectoryGenerator()
 
-pm = pymanager.PhaseManager(ns)
+pm = pymanager.PhaseManager(ns, True)
 
 # phase manager handling
 ## contact_1_timeline; contact_2_timeline; contact_3_timeline; contact_4_timeline;
@@ -294,10 +417,9 @@ c_i = 0
 for c in model.getContactMap(): # c: contact_1, contact_2, contact_3, contact_4
     c_i += 1
     # stance phase normal
-    stance_phase = c_timelines[c].createPhase(stance_duration, f'stance_{c}')
-    
+    stance_phase = c_timelines[c].createPhase(stance_duration, f'stance_{c}') # register stance_phase
     # stance_phase.getTimelines()
-    stance_phase_short = c_timelines[c].createPhase(short_stance_duration, f'stance_{c}_short')
+    stance_phase_short = c_timelines[c].createPhase(short_stance_duration, f'stance_{c}_short') # register stance_phase_short
     if ti.getTask(f'contact_{c_i}') is not None:
         stance_phase.addItem(ti.getTask(f'contact_{c_i}'))
         stance_phase_short.addItem(ti.getTask(f'contact_{c_i}'))
@@ -305,7 +427,7 @@ for c in model.getContactMap(): # c: contact_1, contact_2, contact_3, contact_4
         raise Exception('task not found')
 
     # flight phase
-    flight_phase = c_timelines[c].createPhase(flight_duration, f'flight_{c}')
+    flight_phase = c_timelines[c].createPhase(flight_duration, f'flight_{c}') # register flight_phase
     init_z_foot = model.kd.fk(c)(q=model.q0)['ee_pos'].elements()[2]
     ee_vel = model.kd.frameVelocity(c, model.kd_frame)(q=model.q, qdot=model.v)['ee_vel_linear']
     ref_trj = np.zeros(shape=[7, flight_duration])
@@ -325,7 +447,14 @@ for c in model.getContactMap(): # c: contact_1, contact_2, contact_3, contact_4
 for c in model.cmap.keys():
     stance = c_timelines[c].getRegisteredPhase(f'stance_{c}')
     while c_timelines[c].getEmptyNodes() > 0:
+        # print("EmptyNodes: ", c_timelines[c].getEmptyNodes())
         c_timelines[c].addPhase(stance)
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    printAllPhases(c_timelines[c], add_element_info=True)
+
+exit()
+
+
 
 
 ti.model.q.setBounds(ti.model.q0, ti.model.q0, nodes=0)
@@ -345,7 +474,8 @@ prb.createResidual('min_vel', 1e1 * utils.barrier1(-1 * vel_lims[7:] - model.v[7
 
 ti.finalize()
 
-rs = pyrosserver.RosServerClass(pm)
+# /phase_manager_ros_server_class
+rs = pyrosserver.RosServerClass(pm) 
 def dont_print(*args, **kwargs):
     pass
 ti.solver_rti.set_iteration_callback(dont_print)
@@ -360,15 +490,11 @@ contact_phase_map = {c: f'{c}_timeline' for c in model.cmap.keys()}
 # print("contact_phase_map = ", contact_phase_map) # contact_phase_map =  {'contact_1': 'contact_1_timeline', 'contact_2': 'contact_2_timeline', 'contact_3': 'contact_3_timeline', 'contact_4': 'contact_4_timeline'}
 
 gm = GaitManager(ti, pm, contact_phase_map)
-
-
 gait_manager_ros = GaitManagerROS(gm)
 
 robot_joint_names = [elem for elem in kin_dyn.joint_names() if elem not in ['universe', 'reference']]
-
 q_robot = np.zeros(len(robot_joint_names))
 qdot_robot = np.zeros(len(robot_joint_names))
-
 wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', ContactWrenches, latch=False, queue_size =1)
 
 
@@ -376,7 +502,6 @@ from geometry_msgs.msg import PointStamped
 zmp_pub = rospy.Publisher('zmp_pub', PointStamped, queue_size=10)
 # zmp_f = ti.getTask('zmp')._zmp_fun()
 zmp_point = PointStamped()
-
 c_mean_pub = rospy.Publisher('c_mean_pub', PointStamped, queue_size=10)
 c_mean_point = PointStamped()
 
@@ -396,12 +521,10 @@ while not rospy.is_shutdown():
 
     # set initial state and initial guess
     shift_num = -1
-
     x_opt = solution['x_opt']
     xig = np.roll(x_opt, shift_num, axis=1)
     for i in range(abs(shift_num)):
         xig[:, -1 - i] = x_opt[:, -1]
-
     prb.getState().setInitialGuess(xig)
     prb.setInitialState(x0=xig[:, 0])
 

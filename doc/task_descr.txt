@@ -1,0 +1,24 @@
+task_desrc_list: [
+    {'type': 'Cartesian', 'distal_link': 'base_link', 'indices': [0, 1], 'nodes': '${range(N-10, N)}', 'weight': 5.0, 'name': 'base_xy', 'fun_type': 'residual'}, 
+    {'type': 'Cartesian', 'distal_link': 'base_link', 'indices': [2], 'nodes': 'all', 'weight': 5.0, 'name': 'base_z', 'fun_type': 'residual'}, 
+    {'type': 'Cartesian', 'distal_link': 'base_link', 'indices': [3, 4, 5], 'nodes': '${range(N-5, N)}', 'cartesian_type': 'position', 'weight': 10.0, 'name': 'base_orientation', 'fun_type': 'residual'}, 
+    {'type': 'Contact', 'subtask': ['interaction_1', 'zero_velocity_1'], 'name': 'contact_1', 'fun_type': 'constraint'}, 
+    {'type': 'Contact', 'subtask': ['interaction_2', 'zero_velocity_2'], 'name': 'contact_2', 'fun_type': 'constraint'}, 
+    {'type': 'Contact', 'subtask': ['interaction_3', 'zero_velocity_3'], 'name': 'contact_3', 'fun_type': 'constraint'}, 
+    {'type': 'Contact', 'subtask': ['interaction_4', 'zero_velocity_4'], 'name': 'contact_4', 'fun_type': 'constraint'}, 
+    {'type': 'Postural', 'weight': 0.5, 'indices': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'nodes': 'all', 'name': 'joint_posture', 'fun_type': 'residual'}, 
+    {'type': 'Zmp', 'weight': 100.0, 'name': 'zmp', 'fun_type': 'residual'}, 
+    {'type': 'Regularization', 'nodes': 'all', 'weight': {'acceleration': 0.01, 'force': 0.001}, 'name': 'joint_regularization', 'fun_type': 'residual'}, {'type': 'Cartesian', 'distal_link': 'contact_1', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_1', 'fun_type': 'residual'}, 
+    {'type': 'Cartesian', 'distal_link': 'contact_2', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_2', 'fun_type': 'residual'}, 
+    {'type': 'Cartesian', 'distal_link': 'contact_3', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_3', 'fun_type': 'residual'}, 
+    {'type': 'Cartesian', 'distal_link': 'contact_4', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_4', 'fun_type': 'residual'}
+    ]
+
+def setTaskFromYaml(self, yaml_config)
+    for task_descr in self.task_desrc_list
+        task_descr: {'type': 'Cartesian', 'distal_link': 'base_link', 'indices': [0, 1], 'nodes': '${range(N-10, N)}', 'weight': 5.0, 'name': 'base_xy', 'fun_type': 'residual'}
+        self.setTaskFromDict(task_descr)
+            task = self.generateTaskFromDict(task_descr)
+                task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'base_link', 'indices': [0, 1], 'nodes': range(30, 40), 'weight': 5.0, 'name': 'base_xy', 'fun_type': 'residual'}
+            self.setTask(task)
+            return task
