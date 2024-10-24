@@ -365,12 +365,12 @@ ti.setTaskFromYaml(rospkg.RosPack().get_path('centauro_horizon') + '/config/cent
 # task_descr_resolved:  {'type': 'Cartesian', 'distal_link': 'contact_4', 'indices': [2], 'cartesian_type': 'position', 'weight': 50.0, 'name': 'z_contact_4', 'fun_type': 'residual'}
 
 
-exit()
+
 
 
 tg = trajectoryGenerator.TrajectoryGenerator()
 
-pm = pymanager.PhaseManager(ns)
+pm = pymanager.PhaseManager(ns, True)
 
 # phase manager handling
 ## contact_1_timeline; contact_2_timeline; contact_3_timeline; contact_4_timeline;
@@ -390,15 +390,14 @@ c_i = 0
 # print("Timelines : ",pm.getTimelines()['contact_1_timeline'])
 # for key, value in pm.getTimelines().items():
 #     print(f'{key}: {value}')
-exit()
+
 
 for c in model.getContactMap(): # c: contact_1, contact_2, contact_3, contact_4
     c_i += 1
     # stance phase normal
-    stance_phase = c_timelines[c].createPhase(stance_duration, f'stance_{c}')
-    
+    stance_phase = c_timelines[c].createPhase(stance_duration, f'stance_{c}') # register stance_phase
     # stance_phase.getTimelines()
-    stance_phase_short = c_timelines[c].createPhase(short_stance_duration, f'stance_{c}_short')
+    stance_phase_short = c_timelines[c].createPhase(short_stance_duration, f'stance_{c}_short') # register stance_phase_short
     if ti.getTask(f'contact_{c_i}') is not None:
         stance_phase.addItem(ti.getTask(f'contact_{c_i}'))
         stance_phase_short.addItem(ti.getTask(f'contact_{c_i}'))
@@ -406,7 +405,7 @@ for c in model.getContactMap(): # c: contact_1, contact_2, contact_3, contact_4
         raise Exception('task not found')
 
     # flight phase
-    flight_phase = c_timelines[c].createPhase(flight_duration, f'flight_{c}')
+    flight_phase = c_timelines[c].createPhase(flight_duration, f'flight_{c}') # register flight_phase
     init_z_foot = model.kd.fk(c)(q=model.q0)['ee_pos'].elements()[2]
     ee_vel = model.kd.frameVelocity(c, model.kd_frame)(q=model.q, qdot=model.v)['ee_vel_linear']
     ref_trj = np.zeros(shape=[7, flight_duration])
@@ -426,8 +425,9 @@ for c in model.getContactMap(): # c: contact_1, contact_2, contact_3, contact_4
 for c in model.cmap.keys():
     stance = c_timelines[c].getRegisteredPhase(f'stance_{c}')
     while c_timelines[c].getEmptyNodes() > 0:
+        # print("EmptyNodes: ", c_timelines[c].getEmptyNodes())
         c_timelines[c].addPhase(stance)
-
+# exit()
 
 ti.model.q.setBounds(ti.model.q0, ti.model.q0, nodes=0)
 # ti.model.v.setBounds(ti.model.v0, ti.model.v0, nodes=0)
