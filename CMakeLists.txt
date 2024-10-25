@@ -197,6 +197,7 @@ RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
   python/centauro_receding_horizon.py
+#   python/centauro_visualizer.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

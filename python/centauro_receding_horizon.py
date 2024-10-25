@@ -620,59 +620,59 @@ while not rospy.is_shutdown():
 
 
     # =========================== publish contact position ========================
-    Tee = model_fk.getPose('contact_1')
-    data[0] = Tee.translation[0]
-    data[1] = Tee.translation[1]
-    data[2] = Tee.translation[2]
-    contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
-    contact1_point = PointStamped()
-    contact1_point.header.stamp = rospy.Time.now()
-    contact1_point.header.frame_id = 'world'
-    contact1_point.point.x = data[0]
-    contact1_point.point.y = data[1]
-    contact1_point.point.z = 0
-    contact1_pub.publish(contact1_point)
+    # Tee = model_fk.getPose('contact_1')
+    # data[0] = Tee.translation[0]
+    # data[1] = Tee.translation[1]
+    # data[2] = Tee.translation[2]
+    # contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
+    # contact1_point = PointStamped()
+    # contact1_point.header.stamp = rospy.Time.now()
+    # contact1_point.header.frame_id = 'world'
+    # contact1_point.point.x = data[0]
+    # contact1_point.point.y = data[1]
+    # contact1_point.point.z = 0
+    # contact1_pub.publish(contact1_point)
 
-    Tee = model_fk.getPose('contact_2')
-    data[0] = Tee.translation[0]
-    data[1] = Tee.translation[1]
-    data[2] = Tee.translation[2]
-    contact2_pub = rospy.Publisher('contact2_pub', PointStamped, queue_size=10)
-    contact2_point = PointStamped()
-    contact2_point.header.stamp = rospy.Time.now()
-    contact2_point.header.frame_id = 'world'
-    contact2_point.point.x = data[0]
-    contact2_point.point.y = data[1]
-    contact2_point.point.z = 0
-    contact2_pub.publish(contact2_point)
+    # Tee = model_fk.getPose('contact_2')
+    # data[0] = Tee.translation[0]
+    # data[1] = Tee.translation[1]
+    # data[2] = Tee.translation[2]
+    # contact2_pub = rospy.Publisher('contact2_pub', PointStamped, queue_size=10)
+    # contact2_point = PointStamped()
+    # contact2_point.header.stamp = rospy.Time.now()
+    # contact2_point.header.frame_id = 'world'
+    # contact2_point.point.x = data[0]
+    # contact2_point.point.y = data[1]
+    # contact2_point.point.z = 0
+    # contact2_pub.publish(contact2_point)
 
-    Tee = model_fk.getPose('contact_3')
-    data[0] = Tee.translation[0]
-    data[1] = Tee.translation[1]
-    data[2] = Tee.translation[2]
-    contact3_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
-    contact3_point = PointStamped()
-    contact3_point.header.stamp = rospy.Time.now()
-    contact3_point.header.frame_id = 'world'
-    contact3_point.point.x = data[0]
-    contact3_point.point.y = data[1]
-    contact3_point.point.z = 0
-    contact3_pub.publish(contact3_point)
+    # Tee = model_fk.getPose('contact_3')
+    # data[0] = Tee.translation[0]
+    # data[1] = Tee.translation[1]
+    # data[2] = Tee.translation[2]
+    # contact3_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
+    # contact3_point = PointStamped()
+    # contact3_point.header.stamp = rospy.Time.now()
+    # contact3_point.header.frame_id = 'world'
+    # contact3_point.point.x = data[0]
+    # contact3_point.point.y = data[1]
+    # contact3_point.point.z = 0
+    # contact3_pub.publish(contact3_point)
 
-    Tee = model_fk.getPose('contact_4')
-    data[0] = Tee.translation[0]
-    data[1] = Tee.translation[1]
-    data[2] = Tee.translation[2]
-    contact4_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
-    contact4_point = PointStamped()
-    contact4_point.header.stamp = rospy.Time.now()
-    contact4_point.header.frame_id = 'world'
-    contact4_point.point.x = data[0]
-    contact4_point.point.y = data[1]
-    contact4_point.point.z = 0
-    contact4_pub.publish(contact4_point)
-    # print('Tee.translation.shape = ',Tee.translation.shape)
-    # print("data: ", data)
+    # Tee = model_fk.getPose('contact_4')
+    # data[0] = Tee.translation[0]
+    # data[1] = Tee.translation[1]
+    # data[2] = Tee.translation[2]
+    # contact4_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
+    # contact4_point = PointStamped()
+    # contact4_point.header.stamp = rospy.Time.now()
+    # contact4_point.header.frame_id = 'world'
+    # contact4_point.point.x = data[0]
+    # contact4_point.point.y = data[1]
+    # contact4_point.point.z = 0
+    # contact4_pub.publish(contact4_point)
+    # # print('Tee.translation.shape = ',Tee.translation.shape)
+    # # print("data: ", data)
     # ============================================================================
 
 
