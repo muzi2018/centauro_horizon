@@ -406,7 +406,7 @@ for c in model.cmap.keys():
 
 short_stance_duration = 5
 stance_duration = 15
-flight_duration = 30
+flight_duration = 15
 c_i = 0
 # print("pm type is " , type(pm.getTimelines()))
 # print("Timelines : ",pm.getTimelines()['contact_1_timeline'])
