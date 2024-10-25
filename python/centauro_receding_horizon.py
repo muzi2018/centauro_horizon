@@ -500,8 +500,10 @@ wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', Con
 
 from geometry_msgs.msg import PointStamped
 zmp_pub = rospy.Publisher('zmp_pub', PointStamped, queue_size=10)
-# zmp_f = ti.getTask('zmp')._zmp_fun()
+zmp_f = ti.getTask('zmp')._zmp_fun()
 zmp_point = PointStamped()
+
+
 c_mean_pub = rospy.Publisher('c_mean_pub', PointStamped, queue_size=10)
 c_mean_point = PointStamped()
 
@@ -559,8 +561,48 @@ while not rospy.is_shutdown():
             Vector3(x=solution[f'f_{frame}'][0, 0], y=solution[f'f_{frame}'][1, 0], z=solution[f'f_{frame}'][2, 0]))
 
     solution_publisher.publish(sol_msg)
-    solution_time_publisher.publish(Float64(data=time.time() - t0))
 
+    # =========================== publish zmp =================================================
+    input_zmp = []
+    input_zmp.append(solution['q'][:, 0])
+    input_zmp.append(solution['v'][:, 0])
+    input_zmp.append(solution['a'][:, 0])
+    
+    for f_var in model.fmap.keys():
+        input_zmp.append(solution[f"f_{f_var}"][:, 0])
+    
+    c_mean = np.zeros([3, 1])
+    f_tot = np.zeros([3, 1])
+    for c_name, f_var in model.fmap.items():
+        fk_c_pos = kin_dyn.fk(c_name)(q=solution['q'][:, 0])['ee_pos'].toarray() # ee_pos
+        c_mean += fk_c_pos * solution[f"f_{c_name}"][2, 0]
+        f_tot += solution[f"f_{c_name}"][2, 0]
+    
+    print(f_tot[2, 0])
+    c_mean /= f_tot
+    
+    zmp_val = zmp_f(*input_zmp)
+    # zmp_val = zmp_f()
+    
+    zmp_point.header.stamp = rospy.Time.now()
+    zmp_point.header.frame_id = 'world'
+    zmp_point.point.x = zmp_val[0]
+    zmp_point.point.y = zmp_val[1]
+    zmp_point.point.z = 0
+    
+    zmp_pub.publish(zmp_point)
+    
+    c_mean_point.header.stamp = rospy.Time.now()
+    c_mean_point.header.frame_id = 'world'
+    c_mean_point.point.x = c_mean[0]
+    c_mean_point.point.y = c_mean[1]
+    c_mean_point.point.z = 0
+    
+    c_mean_pub.publish(c_mean_point)
+    # ============================================================================
+
+
+    solution_time_publisher.publish(Float64(data=time.time() - t0))
     rate.sleep()
 
 
