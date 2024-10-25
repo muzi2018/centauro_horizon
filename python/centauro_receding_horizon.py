@@ -186,6 +186,7 @@ if xbot_param:
     print ("xbot i on")
     # exit()
     robot = xbot.RobotInterface(cfg)
+    model_fk = robot.model()
     robot.sense()
 
     if not closed_loop:
@@ -506,11 +507,23 @@ zmp_f = ti.getTask('zmp')._zmp_fun()
 zmp_point = PointStamped()
 
 # robot
-# contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
+contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
+contact1_point = PointStamped()
+
+contact2_pub = rospy.Publisher('contact2_pub', PointStamped, queue_size=10)
+contact2_point = PointStamped()
+
+contact3_pub = rospy.Publisher('contact3_pub', PointStamped, queue_size=10)
+contact3_point = PointStamped()
+
+contact4_pub = rospy.Publisher('contact4_pub', PointStamped, queue_size=10)
+contact4_point = PointStamped()
 
 
 c_mean_pub = rospy.Publisher('c_mean_pub', PointStamped, queue_size=10)
 c_mean_point = PointStamped()
+
+data = np.zeros((3, 1))
 
 
 while not rospy.is_shutdown():
@@ -594,7 +607,6 @@ while not rospy.is_shutdown():
     zmp_point.point.x = zmp_val[0]
     zmp_point.point.y = zmp_val[1]
     zmp_point.point.z = 0
-    
     zmp_pub.publish(zmp_point)
     
     c_mean_point.header.stamp = rospy.Time.now()
@@ -605,6 +617,64 @@ while not rospy.is_shutdown():
     
     c_mean_pub.publish(c_mean_point)
     # ============================================================================
+
+
+    # =========================== publish contact position ========================
+    Tee = model_fk.getPose('contact_1')
+    data[0] = Tee.translation[0]
+    data[1] = Tee.translation[1]
+    data[2] = Tee.translation[2]
+    contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
+    contact1_point = PointStamped()
+    contact1_point.header.stamp = rospy.Time.now()
+    contact1_point.header.frame_id = 'world'
+    contact1_point.point.x = data[0]
+    contact1_point.point.y = data[1]
+    contact1_point.point.z = 0
+    contact1_pub.publish(contact1_point)
+
+    Tee = model_fk.getPose('contact_2')
+    data[0] = Tee.translation[0]
+    data[1] = Tee.translation[1]
+    data[2] = Tee.translation[2]
+    contact2_pub = rospy.Publisher('contact2_pub', PointStamped, queue_size=10)
+    contact2_point = PointStamped()
+    contact2_point.header.stamp = rospy.Time.now()
+    contact2_point.header.frame_id = 'world'
+    contact2_point.point.x = data[0]
+    contact2_point.point.y = data[1]
+    contact2_point.point.z = 0
+    contact2_pub.publish(contact2_point)
+
+    Tee = model_fk.getPose('contact_3')
+    data[0] = Tee.translation[0]
+    data[1] = Tee.translation[1]
+    data[2] = Tee.translation[2]
+    contact3_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
+    contact3_point = PointStamped()
+    contact3_point.header.stamp = rospy.Time.now()
+    contact3_point.header.frame_id = 'world'
+    contact3_point.point.x = data[0]
+    contact3_point.point.y = data[1]
+    contact3_point.point.z = 0
+    contact3_pub.publish(contact3_point)
+
+    Tee = model_fk.getPose('contact_4')
+    data[0] = Tee.translation[0]
+    data[1] = Tee.translation[1]
+    data[2] = Tee.translation[2]
+    contact4_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
+    contact4_point = PointStamped()
+    contact4_point.header.stamp = rospy.Time.now()
+    contact4_point.header.frame_id = 'world'
+    contact4_point.point.x = data[0]
+    contact4_point.point.y = data[1]
+    contact4_point.point.z = 0
+    contact4_pub.publish(contact4_point)
+    # print('Tee.translation.shape = ',Tee.translation.shape)
+    # print("data: ", data)
+    # ============================================================================
+
 
 
     solution_time_publisher.publish(Float64(data=time.time() - t0))
