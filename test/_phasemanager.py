@@ -63,7 +63,7 @@ if srdf == '':
 '''
 Initialize Horizon problem
 '''
-ns = 40
+ns = 10
 T = 2.
 dt = T / ns
 
@@ -158,7 +158,7 @@ for c in model.cmap.keys():
 
 
 short_stance_duration = 5
-stance_duration = 15
+stance_duration = 5
 flight_duration = 15
 c_i = 0
 
@@ -170,10 +170,10 @@ for c in model.getContactMap(): # c: contact_1, contact_2, contact_3, contact_4
     # stance phase normal
     stance_phase = c_timelines[c].createPhase(stance_duration, f'stance_{c}') # register stance_phase
     # stance_phase.getTimelines()
-    stance_phase_short = c_timelines[c].createPhase(short_stance_duration, f'stance_{c}_short') # register stance_phase_short
+    # stance_phase_short = c_timelines[c].createPhase(short_stance_duration, f'stance_{c}_short') # register stance_phase_short
     if ti.getTask(f'contact_{c_i}') is not None:
         stance_phase.addItem(ti.getTask(f'contact_{c_i}'))
-        stance_phase_short.addItem(ti.getTask(f'contact_{c_i}'))
+        # stance_phase_short.addItem(ti.getTask(f'contact_{c_i}'))
     else:
         raise Exception('task not found')
 
@@ -228,7 +228,8 @@ while not rospy.is_shutdown():
 
     pm.shift()
     timeline_1 = pm.getTimelines('contact_1_timeline')
-    printAllPhases(timeline_1, add_element_info=True)
+    # print("---------------SHIFT-----------------")
+    # printAllPhases(timeline_1, add_element_info=True)
 
 
     gait_manager_ros.run()
