@@ -2,6 +2,7 @@
 import rospy
 import rospkg
 from xbot_interface import xbot_interface as xbot
+from xbot_interface import config_options as co
 rospy.init_node('centauro_walk_visualizer')
 
 print("ok to")
@@ -18,17 +19,23 @@ if srdf == '':
     raise print('srdf not set')
 
 '''
+Build ModelInterface and RobotStatePublisher
+'''
+cfg = co.ConfigOptions()
+cfg.set_urdf(urdf)
+cfg.set_srdf(srdf)
+cfg.generate_jidmap()
+cfg.set_string_parameter('model_type', 'RBDL')
+cfg.set_string_parameter('framework', 'ROS')
+cfg.set_bool_parameter('is_model_floating_base', True)
+
+'''
 xbot
 '''
-xbot_param = rospy.get_param(param_name="~xbot", default=False)
-if xbot_param:
-    print ("xbot work")
-    # exit()
-    robot = xbot.RobotInterface(cfg)
-    model_fk = robot.model()
 
+robot = xbot.RobotInterface(cfg)
+model_fk = robot.model()
 
-    q_init = robot.getJointPosition()
-    q_init = robot.eigenToMap(q_init)
-else:
-    print("xbot not work")
+while not rospy.is_shutdown():
+    print('rospy running')
+

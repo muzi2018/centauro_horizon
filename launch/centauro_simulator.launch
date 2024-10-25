@@ -7,7 +7,10 @@
     <arg name="end_effector_right" default="dagana"/>
     <arg name="battery" default="false"/>
     <arg name="xbot2_config" default="$(find centauro_config)/centauro_basic.yaml"/>
-    <arg name="rviz" default="true"/>
+    <arg name="rviz" default="false"/>
+    <arg name="gazebo" default="false"/>
+    <arg name="xbot" default="true" />
+
 
     <param name="robot_description"
          command="$(find xacro)/xacro $(find centauro_urdf)/urdf/centauro_robot.urdf.xacro floating_joint:=true battery:=$(arg battery) upper_body:=$(arg arms) legs:=$(arg legs) velodyne:=$(arg velodyne) realsense:=$(arg realsense) end_effector_left:=$(arg end_effector_left) end_effector_right:=$(arg end_effector_right)"/>
@@ -15,7 +18,7 @@
     <param name="robot_description_semantic"
               command="$(find xacro)/xacro $(find centauro_srdf)/srdf/centauro.srdf.xacro floating_joint:=true upper_body:=$(arg arms) legs:=$(arg legs) velodyne:=$(arg velodyne) realsense:=$(arg realsense) end_effector_left:=$(arg end_effector_left) end_effector_right:=$(arg end_effector_right)"/>
 
-    <include file="$(find centauro_gazebo)/launch/centauro_world.launch" pass_all_args="true"/>
+
 
     <node pkg="centauro_horizon" type="xbot2-core" name="xbot2" output="screen"
         args="--hw sim --simtime --config $(arg xbot2_config) --"/>
@@ -23,7 +26,9 @@
         args="0 0 0.83 0 0 0 world pelvis" />
 
 
-
+    <group if = "$(arg gazebo)">
+        <include file="$(find centauro_gazebo)/launch/centauro_world.launch" pass_all_args="true"/>
+    </group>
     <group if="$(arg rviz)">
         <node pkg="rviz" type="rviz" name="rviz" args="-d $(find centauro_horizon)/rviz/centauro.rviz"/>
     </group>
