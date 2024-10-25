@@ -1,8 +1,15 @@
 #!/usr/bin/python3
 import rospy
 import rospkg
-from xbot_interface import xbot_interface as xbot
+import casadi as cs
+import numpy as np
 from xbot_interface import config_options as co
+from xbot_interface import xbot_interface as xbot
+from geometry_msgs.msg import PoseStamped, TwistStamped, Vector3
+
+import cartesian_interface.affine3
+
+
 rospy.init_node('centauro_walk_visualizer')
 
 print("ok to")
@@ -35,7 +42,15 @@ xbot
 
 robot = xbot.RobotInterface(cfg)
 model_fk = robot.model()
+robot.sense()
 
+data = np.zeros((3, 1))
 while not rospy.is_shutdown():
     print('rospy running')
-
+    # =========================== publish contact position ========================
+    pose = model_fk.getPose('contact_1')
+    data[0] = pose.translation[0]
+    data[1] = pose.translation[1]
+    data[2] = pose.translation[2]
+    print("data: ", data)
+    # ============================================================================
