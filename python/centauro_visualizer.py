@@ -117,3 +117,6 @@ while not rospy.is_shutdown():
     contact4_pub.publish(contact4_point)
     # ============================================================================
     rate.sleep()
+
+
+    

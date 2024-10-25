@@ -6,6 +6,11 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /PointStamped1
+        - /PointStamped2
+        - /PointStamped3
+        - /PointStamped4
+        - /PointStamped5
       Splitter Ratio: 0.5
     Tree Height: 596
   - Class: rviz/Selection
@@ -349,6 +354,61 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/PointStamped
+      Color: 204; 41; 204
+      Enabled: true
+      History Length: 1
+      Name: PointStamped
+      Queue Size: 10
+      Radius: 0.009999999776482582
+      Topic: /contact1_pub
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/PointStamped
+      Color: 204; 41; 204
+      Enabled: true
+      History Length: 1
+      Name: PointStamped
+      Queue Size: 10
+      Radius: 0.05000000074505806
+      Topic: /contact2_pub
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/PointStamped
+      Color: 204; 41; 204
+      Enabled: true
+      History Length: 1
+      Name: PointStamped
+      Queue Size: 10
+      Radius: 0.05000000074505806
+      Topic: /contact3_pub
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/PointStamped
+      Color: 204; 41; 204
+      Enabled: true
+      History Length: 1
+      Name: PointStamped
+      Queue Size: 10
+      Radius: 0.05000000074505806
+      Topic: /contact4_pub
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/PointStamped
+      Color: 204; 41; 204
+      Enabled: true
+      History Length: 1
+      Name: PointStamped
+      Queue Size: 10
+      Radius: 0.05000000074505806
+      Topic: /zmp_pub
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -377,7 +437,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 10
+      Distance: 0.8197364211082458
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -385,17 +445,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.330829381942749
-        Y: 0.6185279488563538
-        Z: -0.6712968349456787
+        X: -0.0885622501373291
+        Y: 0.148971825838089
+        Z: -0.1171085312962532
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7053980827331543
+      Pitch: 0.21039873361587524
       Target Frame: <Fixed Frame>
-      Yaw: 1.1353976726531982
+      Yaw: 0.1604088544845581
     Saved: ~
 Window Geometry:
   Displays:
@@ -413,5 +473,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1631
-  X: 861
-  Y: 457
+  X: 2943
+  Y: 423
