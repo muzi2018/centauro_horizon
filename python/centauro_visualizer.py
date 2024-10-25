@@ -62,7 +62,7 @@ contact4_point = PointStamped()
 rate = rospy.Rate(50)
 
 while not rospy.is_shutdown():
-    # print('rospy running')
+    print('rospy running')
     # =========================== publish contact position ========================
     pose = model_fk.getPose('contact_1')
     data[0] = pose.translation[0]
