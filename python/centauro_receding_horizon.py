@@ -507,17 +507,17 @@ zmp_f = ti.getTask('zmp')._zmp_fun()
 zmp_point = PointStamped()
 
 # robot
-contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
-contact1_point = PointStamped()
+# contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
+# contact1_point = PointStamped()
 
-contact2_pub = rospy.Publisher('contact2_pub', PointStamped, queue_size=10)
-contact2_point = PointStamped()
+# contact2_pub = rospy.Publisher('contact2_pub', PointStamped, queue_size=10)
+# contact2_point = PointStamped()
 
-contact3_pub = rospy.Publisher('contact3_pub', PointStamped, queue_size=10)
-contact3_point = PointStamped()
+# contact3_pub = rospy.Publisher('contact3_pub', PointStamped, queue_size=10)
+# contact3_point = PointStamped()
 
-contact4_pub = rospy.Publisher('contact4_pub', PointStamped, queue_size=10)
-contact4_point = PointStamped()
+# contact4_pub = rospy.Publisher('contact4_pub', PointStamped, queue_size=10)
+# contact4_point = PointStamped()
 
 
 c_mean_pub = rospy.Publisher('c_mean_pub', PointStamped, queue_size=10)
