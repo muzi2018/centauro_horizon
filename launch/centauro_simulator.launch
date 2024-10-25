@@ -7,6 +7,7 @@
     <arg name="end_effector_right" default="dagana"/>
     <arg name="battery" default="false"/>
     <arg name="xbot2_config" default="$(find centauro_config)/centauro_basic.yaml"/>
+    <arg name="rviz" default="true"/>
 
     <param name="robot_description"
          command="$(find xacro)/xacro $(find centauro_urdf)/urdf/centauro_robot.urdf.xacro floating_joint:=true battery:=$(arg battery) upper_body:=$(arg arms) legs:=$(arg legs) velodyne:=$(arg velodyne) realsense:=$(arg realsense) end_effector_left:=$(arg end_effector_left) end_effector_right:=$(arg end_effector_right)"/>
@@ -18,6 +19,11 @@
 
     <node pkg="centauro_horizon" type="xbot2-core" name="xbot2" output="screen"
         args="--hw sim --simtime --config $(arg xbot2_config) --"/>
-
+    <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_pelvis_tf" 
+        args="0 0 0.8 0 0 0 world pelvis" />
+    <group if="$(arg rviz)">
+        <node pkg="rviz" type="rviz" name="rviz" output="screen"
+              args="-d $(find centauro_horizon)/rviz/your_config_file.rviz"/>
+    </group>
 </launch>
 
