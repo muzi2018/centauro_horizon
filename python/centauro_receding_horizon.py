@@ -183,6 +183,8 @@ robot = None
 
 
 if xbot_param:
+    print ("xbot i on")
+    # exit()
     robot = xbot.RobotInterface(cfg)
     robot.sense()
 
@@ -502,6 +504,9 @@ from geometry_msgs.msg import PointStamped
 zmp_pub = rospy.Publisher('zmp_pub', PointStamped, queue_size=10)
 zmp_f = ti.getTask('zmp')._zmp_fun()
 zmp_point = PointStamped()
+
+# robot
+# contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
 
 
 c_mean_pub = rospy.Publisher('c_mean_pub', PointStamped, queue_size=10)

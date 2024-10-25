@@ -239,6 +239,10 @@ install(DIRECTORY config/
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
         FILES_MATCHING PATTERN "*.yaml"
 )
+install(DIRECTORY rviz/
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/rviz
+        FILES_MATCHING PATTERN "*.rviz"
+)
 #############
 ## Testing ##
 #############
