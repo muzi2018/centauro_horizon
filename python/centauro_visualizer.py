@@ -68,6 +68,7 @@ while not rospy.is_shutdown():
     data[0] = pose.translation[0]
     data[1] = pose.translation[1]
     data[2] = pose.translation[2]
+    print("contact_1 position", data)
     contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
     contact1_point = PointStamped()
     contact1_point.header.stamp = rospy.Time.now()

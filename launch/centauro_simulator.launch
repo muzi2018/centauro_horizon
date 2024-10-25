@@ -25,7 +25,7 @@
     <node pkg="centauro_horizon" type="xbot2-core" name="xbot2" output="screen"
         args="--hw sim --simtime --config $(arg xbot2_config) --"/>
     <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_pelvis_tf" 
-        args="0 0 0.83 0 0 0 world pelvis" />
+        args="0 0 0.81 0 0 0 world pelvis" />
 
 
     <group if = "$(arg gazebo)">
