@@ -555,7 +555,7 @@ while not rospy.is_shutdown():
     pm.shift()
 
     timeline1 = pm.getTimelines()['contact_1_timeline']
-    printAllPhases(timeline1, add_element_info=True)
+    # printAllPhases(timeline1, add_element_info=True)
 
     # publishes to ros phase manager info
     rs.run()

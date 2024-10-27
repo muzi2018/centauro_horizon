@@ -12,7 +12,7 @@ import cartesian_interface.affine3
 
 rospy.init_node('centauro_walk_visualizer')
 
-print("ok to")
+# print("ok to 1")
 
 
 '''
@@ -68,14 +68,14 @@ while not rospy.is_shutdown():
     data[0] = pose.translation[0]
     data[1] = pose.translation[1]
     data[2] = pose.translation[2]
-    print("contact_1 position", data)
+    print("contact_1 position", data[2])
     contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
     contact1_point = PointStamped()
     contact1_point.header.stamp = rospy.Time.now()
     contact1_point.header.frame_id = 'world'
     contact1_point.point.x = data[0]
     contact1_point.point.y = data[1]
-    contact1_point.point.z = 0
+    contact1_point.point.z = data[2]
     contact1_pub.publish(contact1_point)
 
     pose = model_fk.getPose('contact_2')
@@ -88,7 +88,7 @@ while not rospy.is_shutdown():
     contact2_point.header.frame_id = 'world'
     contact2_point.point.x = data[0]
     contact2_point.point.y = data[1]
-    contact2_point.point.z = 0
+    contact2_point.point.z = data[2]
     contact2_pub.publish(contact2_point)
 
     pose = model_fk.getPose('contact_3')
@@ -101,7 +101,7 @@ while not rospy.is_shutdown():
     contact3_point.header.frame_id = 'world'
     contact3_point.point.x = data[0]
     contact3_point.point.y = data[1]
-    contact3_point.point.z = 0
+    contact3_point.point.z = data[2]
     contact3_pub.publish(contact3_point)
 
     pose = model_fk.getPose('contact_4')
@@ -114,7 +114,7 @@ while not rospy.is_shutdown():
     contact4_point.header.frame_id = 'world'
     contact4_point.point.x = data[0]
     contact4_point.point.y = data[1]
-    contact4_point.point.z = 0
+    contact4_point.point.z = data[2]
     contact4_pub.publish(contact4_point)
     # ============================================================================
     rate.sleep()
