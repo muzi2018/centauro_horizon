@@ -496,6 +496,10 @@ gm = GaitManager(ti, pm, contact_phase_map)
 gait_manager_ros = GaitManagerROS(gm)
 
 robot_joint_names = [elem for elem in kin_dyn.joint_names() if elem not in ['universe', 'reference']]
+
+# print("robot_joint_names = ", robot_joint_names) # robot_joint
+# exit()
+
 q_robot = np.zeros(len(robot_joint_names))
 qdot_robot = np.zeros(len(robot_joint_names))
 wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', ContactWrenches, latch=False, queue_size =1)

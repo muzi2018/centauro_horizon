@@ -1,0 +1,15 @@
+
+solution_order:
+'pose'
+'hip_yaw_1', 'hip_pitch_1', 'knee_pitch_1', 'ankle_pitch_1', 
+'hip_yaw_2', 'hip_pitch_2', 'knee_pitch_2', 'ankle_pitch_2', 
+'hip_yaw_3', 'hip_pitch_3', 'knee_pitch_3', 'ankle_pitch_3', 
+'hip_yaw_4', 'hip_pitch_4', 'knee_pitch_4', 'ankle_pitch_4'
+
+
+robot_joint_names =  ['hip_yaw_1', 'hip_pitch_1', 'knee_pitch_1', 'ankle_pitch_1', 'hip_yaw_2', 'hip_pitch_2', 'knee_pitch_2', 'ankle_pitch_2', 'hip_yaw_3', 'hip_pitch_3', 'knee_pitch_3', 'ankle_pitch_3', 'hip_yaw_4', 'hip_pitch_4', 'knee_pitch_4', 'ankle_pitch_4']
+
+
+q : 23
+v : 22
+a : 22

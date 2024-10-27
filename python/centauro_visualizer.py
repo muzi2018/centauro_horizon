@@ -8,8 +8,16 @@ from xbot_interface import xbot_interface as xbot
 from geometry_msgs.msg import PoseStamped, TwistStamped, Vector3
 from geometry_msgs.msg import PointStamped
 import cartesian_interface.affine3
+from centauro_horizon.msg import WBTrajectory
 
-
+solution = {}
+def solution_callback(msg):
+    solution['q'] = msg.q
+    solution['v'] = msg.v
+    solution['a'] = msg.a
+    print("q size: ", len(msg.q))
+    print("v size: ", len(msg.v))
+    print("a size: ", len(msg.a))    
 rospy.init_node('centauro_walk_visualizer')
 
 # print("ok to 1")
@@ -60,6 +68,11 @@ contact4_pub = rospy.Publisher('contact4_pub', PointStamped, queue_size=10)
 contact4_point = PointStamped()
 
 rate = rospy.Rate(50)
+
+
+
+rospy.Subscriber('/mpc_solution', WBTrajectory, solution_callback, queue_size=1, tcp_nodelay=True)
+
 
 while not rospy.is_shutdown():
     print('rospy running')
