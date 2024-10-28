@@ -104,67 +104,67 @@ while not rospy.is_shutdown():
     # qddot[15:19] = solution['a'][8:12].reshape(4, 1) # 15-18
     # qddot[19:23] = solution['a'][12:16].reshape(4, 1) # 19-23
 
-    # q += dt * qdot.flatten() + 0.5 * pow(dt, 2) * qddot.flatten()
-    # qdot += dt * qddot
+    q += dt * qdot + 0.5 * pow(dt, 2) * qddot
+    qdot += dt * qddot
 
-    # model_fk.setJointPosition(q)
-    # model_fk.setJointVelocity(qdot)
-    # model_fk.setJointAcceleration(qddot)
-    # model_fk.update()
+    model_fk.setJointPosition(q)
+    model_fk.setJointVelocity(qdot)
+    model_fk.setJointAcceleration(qddot)
+    model_fk.update()
 
-    ## =========================== publish contact position ========================
-    # pose = model_fk.getPose('contact_1')
-    # data[0] = pose.translation[0]
-    # data[1] = pose.translation[1]
-    # data[2] = pose.translation[2]
-    # print("contact_1 position", data[2])
-    # contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
-    # contact1_point = PointStamped()
-    # contact1_point.header.stamp = rospy.Time.now()
-    # contact1_point.header.frame_id = 'world'
-    # contact1_point.point.x = data[0]
-    # contact1_point.point.y = data[1]
-    # contact1_point.point.z = data[2]
-    # contact1_pub.publish(contact1_point)
+    # =========================== publish contact position ========================
+    pose = model_fk.getPose('contact_1')
+    data[0] = pose.translation[0]
+    data[1] = pose.translation[1]
+    data[2] = pose.translation[2]
+    print("contact_1 position", data[2])
+    contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
+    contact1_point = PointStamped()
+    contact1_point.header.stamp = rospy.Time.now()
+    contact1_point.header.frame_id = 'world'
+    contact1_point.point.x = data[0]
+    contact1_point.point.y = data[1]
+    contact1_point.point.z = data[2]
+    contact1_pub.publish(contact1_point)
 
-    # pose = model_fk.getPose('contact_2')
-    # data[0] = pose.translation[0]
-    # data[1] = pose.translation[1]
-    # data[2] = pose.translation[2]
-    # contact2_pub = rospy.Publisher('contact2_pub', PointStamped, queue_size=10)
-    # contact2_point = PointStamped()
-    # contact2_point.header.stamp = rospy.Time.now()
-    # contact2_point.header.frame_id = 'world'
-    # contact2_point.point.x = data[0]
-    # contact2_point.point.y = data[1]
-    # contact2_point.point.z = data[2]
-    # contact2_pub.publish(contact2_point)
+    pose = model_fk.getPose('contact_2')
+    data[0] = pose.translation[0]
+    data[1] = pose.translation[1]
+    data[2] = pose.translation[2]
+    contact2_pub = rospy.Publisher('contact2_pub', PointStamped, queue_size=10)
+    contact2_point = PointStamped()
+    contact2_point.header.stamp = rospy.Time.now()
+    contact2_point.header.frame_id = 'world'
+    contact2_point.point.x = data[0]
+    contact2_point.point.y = data[1]
+    contact2_point.point.z = data[2]
+    contact2_pub.publish(contact2_point)
 
-    # pose = model_fk.getPose('contact_3')
-    # data[0] = pose.translation[0]
-    # data[1] = pose.translation[1]
-    # data[2] = pose.translation[2]
-    # contact3_pub = rospy.Publisher('contact3_pub', PointStamped, queue_size=10)
-    # contact3_point = PointStamped()
-    # contact3_point.header.stamp = rospy.Time.now()
-    # contact3_point.header.frame_id = 'world'
-    # contact3_point.point.x = data[0]
-    # contact3_point.point.y = data[1]
-    # contact3_point.point.z = data[2]
-    # contact3_pub.publish(contact3_point)
+    pose = model_fk.getPose('contact_3')
+    data[0] = pose.translation[0]
+    data[1] = pose.translation[1]
+    data[2] = pose.translation[2]
+    contact3_pub = rospy.Publisher('contact3_pub', PointStamped, queue_size=10)
+    contact3_point = PointStamped()
+    contact3_point.header.stamp = rospy.Time.now()
+    contact3_point.header.frame_id = 'world'
+    contact3_point.point.x = data[0]
+    contact3_point.point.y = data[1]
+    contact3_point.point.z = data[2]
+    contact3_pub.publish(contact3_point)
 
-    # pose = model_fk.getPose('contact_4')
-    # data[0] = pose.translation[0]
-    # data[1] = pose.translation[1]
-    # data[2] = pose.translation[2]
-    # contact4_pub = rospy.Publisher('contact4_pub', PointStamped, queue_size=10)
-    # contact4_point = PointStamped()
-    # contact4_point.header.stamp = rospy.Time.now()
-    # contact4_point.header.frame_id = 'world'
-    # contact4_point.point.x = data[0]
-    # contact4_point.point.y = data[1]
-    # contact4_point.point.z = data[2]
-    # contact4_pub.publish(contact4_point)
+    pose = model_fk.getPose('contact_4')
+    data[0] = pose.translation[0]
+    data[1] = pose.translation[1]
+    data[2] = pose.translation[2]
+    contact4_pub = rospy.Publisher('contact4_pub', PointStamped, queue_size=10)
+    contact4_point = PointStamped()
+    contact4_point.header.stamp = rospy.Time.now()
+    contact4_point.header.frame_id = 'world'
+    contact4_point.point.x = data[0]
+    contact4_point.point.y = data[1]
+    contact4_point.point.z = data[2]
+    contact4_pub.publish(contact4_point)
     # ============================================================================
     rate.sleep()
 
