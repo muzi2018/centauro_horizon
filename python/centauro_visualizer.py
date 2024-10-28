@@ -14,10 +14,21 @@ solution = {}
 solution['q'] = np.zeros(23)
 solution['v'] = np.zeros(22)
 solution['a'] = np.zeros(22)
+qdot = np.zeros(46) # 46 x 1
+qddot = np.zeros(46) # 46 x 1
 def solution_callback(msg):
-    solution['q'] = msg.q # 23
-    solution['v'] = msg.v # 22
-    solution['a'] = msg.a # 22
+    # solution['q'] = msg.q # 23
+    # solution['v'] = msg.v # 22
+    # solution['a'] = msg.a # 22
+    qdot[7:11] = msg.v[0:4] # 7-10
+    qdot[11:15] = msg.v[4:8] # 11-14
+    qdot[15:19] = msg.v[8:12] # 15-18
+    qdot[19:23] = msg.v[12:16] # 19-23
+
+    qddot[7:11] = msg.a[0:4] # 7-10
+    qddot[11:15] =msg.a[4:8] # 11-14
+    qddot[15:19] =msg.a[8:12] # 15-18
+    qddot[19:23] =msg.a[12:16] # 19-23
     print("q size: ", len(msg.q)) # 23
     print("v size: ", len(msg.v)) # 22
     print("a size: ", len(msg.a)) # 22   
@@ -77,8 +88,7 @@ rospy.Subscriber('/mpc_solution', WBTrajectory, solution_callback, queue_size=1,
 ns = 40
 T = 2.
 dt = T / ns
-qdot = np.zeros((46,1)) # 46 x 1
-qddot = np.zeros((46,1)) # 46 x 1
+
 while not rospy.is_shutdown():
     print('rospy running')
     q = model_fk.getJointPosition() # 46 # okay
