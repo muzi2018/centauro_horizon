@@ -13,3 +13,4 @@ robot_joint_names =  ['hip_yaw_1', 'hip_pitch_1', 'knee_pitch_1', 'ankle_pitch_1
 q : 23
 v : 22
 a : 22
+            
