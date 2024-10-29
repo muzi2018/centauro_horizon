@@ -16,7 +16,7 @@
         <rosparam param="closed_loop">False</rosparam>
     </node>
 
-    <node pkg="centauro_horizon" type="centauro_visualizer.py" name="centauro_walk_visualizer" output="screen"> </node>
+    <!-- <node pkg="centauro_horizon" type="centauro_visualizer.py" name="centauro_walk_visualizer" output="screen"> </node> -->
 </launch>
 
 
