@@ -34,6 +34,12 @@
     <group if="$(arg rviz)">
         <node pkg="rviz" type="rviz" name="rviz" args="-d $(find centauro_horizon)/rviz/centauro.rviz"/>
     </group>
-    
+
+
+    <include file="$(find base_estimation)/launch/centauro_base_estimation.launch" if="$(arg base_estimation)">
+    	<arg name="launch-prefix" value="gnome-terminal --"/>
+    </include>
+
+
 </launch>
 
