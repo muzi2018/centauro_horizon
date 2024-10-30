@@ -571,7 +571,7 @@ while not rospy.is_shutdown():
     solution = ti.solution
 
     sol_msg = WBTrajectory()
-    sol_msg.header.frame_id = 'world'
+    sol_msg.header.frame_id = 'odometry/world'
     sol_msg.header.stamp = rospy.Time.now()
 
     sol_msg.joint_names = robot_joint_names
@@ -614,14 +614,14 @@ while not rospy.is_shutdown():
     # zmp_val = zmp_f()
     
     zmp_point.header.stamp = rospy.Time.now()
-    zmp_point.header.frame_id = 'world'
+    zmp_point.header.frame_id = 'odometry/world'
     zmp_point.point.x = zmp_val[0]
     zmp_point.point.y = zmp_val[1]
     zmp_point.point.z = 0
     zmp_pub.publish(zmp_point)
     
     c_mean_point.header.stamp = rospy.Time.now()
-    c_mean_point.header.frame_id = 'world'
+    c_mean_point.header.frame_id = 'odometry/world'
     c_mean_point.point.x = c_mean[0]
     c_mean_point.point.y = c_mean[1]
     c_mean_point.point.z = 0
@@ -633,7 +633,7 @@ while not rospy.is_shutdown():
     # =========================== publish contact position ========================
     contact1_point = PointStamped()
     contact1_point.header.stamp = rospy.Time.now()
-    contact1_point.header.frame_id = 'world'
+    contact1_point.header.frame_id = 'odometry/world'
     contact1_point.point.x = fk_c_pos['contact_1'][0]
     contact1_point.point.y = fk_c_pos['contact_1'][1]
     contact1_point.point.z = fk_c_pos['contact_1'][2]
@@ -641,7 +641,7 @@ while not rospy.is_shutdown():
 
     contact2_point = PointStamped()
     contact2_point.header.stamp = rospy.Time.now()
-    contact2_point.header.frame_id = 'world'
+    contact2_point.header.frame_id = 'odometry/world'
     contact2_point.point.x = fk_c_pos['contact_2'][0]
     contact2_point.point.y = fk_c_pos['contact_2'][1]
     contact2_point.point.z = fk_c_pos['contact_2'][2]
@@ -649,7 +649,7 @@ while not rospy.is_shutdown():
 
     contact3_point = PointStamped()
     contact3_point.header.stamp = rospy.Time.now()
-    contact3_point.header.frame_id = 'world'
+    contact3_point.header.frame_id = 'odometry/world'
     contact3_point.point.x = fk_c_pos['contact_3'][0]
     contact3_point.point.y = fk_c_pos['contact_3'][1]
     contact3_point.point.z = fk_c_pos['contact_3'][2]
@@ -657,7 +657,7 @@ while not rospy.is_shutdown():
 
     contact4_point = PointStamped()
     contact4_point.header.stamp = rospy.Time.now()
-    contact4_point.header.frame_id = 'world'
+    contact4_point.header.frame_id = 'odometry/world'
     contact4_point.point.x = fk_c_pos['contact_4'][0]
     contact4_point.point.y = fk_c_pos['contact_4'][1]
     contact4_point.point.z = fk_c_pos['contact_4'][2]
