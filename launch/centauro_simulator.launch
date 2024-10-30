@@ -14,15 +14,16 @@
     <!-- <arg name="xbot" default="true" /> -->
 
 
-    <!-- <param name="robot_description"
+    <param name="/robot_description"
          command="$(find xacro)/xacro $(find centauro_urdf)/urdf/centauro_robot.urdf.xacro floating_joint:=true battery:=$(arg battery) upper_body:=$(arg arms) legs:=$(arg legs) velodyne:=$(arg velodyne) realsense:=$(arg realsense) end_effector_left:=$(arg end_effector_left) end_effector_right:=$(arg end_effector_right)"/>
 
-    <param name="robot_description_semantic"
-              command="$(find xacro)/xacro $(find centauro_srdf)/srdf/centauro.srdf.xacro floating_joint:=true upper_body:=$(arg arms) legs:=$(arg legs) velodyne:=$(arg velodyne) realsense:=$(arg realsense) end_effector_left:=$(arg end_effector_left) end_effector_right:=$(arg end_effector_right)"/> -->
+    <param name="/robot_description_semantic"
+              command="$(find xacro)/xacro $(find centauro_srdf)/srdf/centauro.srdf.xacro floating_joint:=true upper_body:=$(arg arms) legs:=$(arg legs) velodyne:=$(arg velodyne) realsense:=$(arg realsense) end_effector_left:=$(arg end_effector_left) end_effector_right:=$(arg end_effector_right)"/>
 
 
 
 
+    <!-- base estimation -->
     <include file="$(find base_estimation)/launch/centauro_base_estimation.launch" if="$(arg base_estimation)">
     	<arg name="launch-prefix" value="gnome-terminal --"/>
     </include>
