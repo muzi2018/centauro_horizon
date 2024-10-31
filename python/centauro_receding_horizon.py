@@ -528,7 +528,7 @@ contact4_point = PointStamped()
 c_mean_pub = rospy.Publisher('c_mean_pub', PointStamped, queue_size=10)
 c_mean_point = PointStamped()
 
-marker_pub = rospy.Publisher('/line_marker', Marker, queue_size=10)
+marker_pub = rospy.Publisher('/polygon_marker', Marker, queue_size=10)
 
 data = np.zeros((3, 1))
 
@@ -668,36 +668,34 @@ while not rospy.is_shutdown():
     # ============================================================================
 
     # =========================== publish contact line ========================
-    # Define the line marker
-    line_marker = Marker()
-    line_marker.header.frame_id = "odometry/world"  # Adjust frame if necessary
-    line_marker.header.stamp = rospy.Time.now()
-    line_marker.ns = "lines"
-    line_marker.id = 0
-    line_marker.type = Marker.LINE_STRIP  # or Marker.LINE_LIST for individual line segments
-    line_marker.action = Marker.ADD
-    # Line color and scale
-    line_marker.scale.x = 0.02  # Line width
-    line_marker.color.r = 1.0   # Red
-    line_marker.color.g = 0.0   # Green
-    line_marker.color.b = 0.0   # Blue
-    line_marker.color.a = 1.0   # Opacity
-    # Add points to the line
-    start_point = Point()
-    start_point.x = fk_c_pos['contact_1'][0]
-    start_point.y = fk_c_pos['contact_1'][1]
-    start_point.z = fk_c_pos['contact_1'][2]
+    # Define the polygon marker
+    polygon_marker = Marker()
+    polygon_marker.header.frame_id = "odometry/world"  # Adjust frame as needed
+    polygon_marker.header.stamp = rospy.Time.now()
+    polygon_marker.ns = "polygon"
+    polygon_marker.id = 0
+    polygon_marker.type = Marker.LINE_STRIP  # LINE_STRIP to close the shape
+    polygon_marker.action = Marker.ADD
+    # Set polygon color and scale
+    polygon_marker.scale.x = 0.02  # Line width
+    polygon_marker.color.r = 0.0   # Red
+    polygon_marker.color.g = 1.0   # Green
+    polygon_marker.color.b = 0.0   # Blue
+    polygon_marker.color.a = 1.0   # Opacity
 
-    end_point = Point()
-    end_point.x = fk_c_pos['contact_2'][0]
-    end_point.y = fk_c_pos['contact_2'][1]
-    end_point.z = fk_c_pos['contact_2'][2]
+    # Define points of the polygon (example: triangle)
+    point1 = Point(fk_c_pos['contact_1'][0],fk_c_pos['contact_1'][1], fk_c_pos['contact_1'][2])
+    point2 = Point(fk_c_pos['contact_2'][0],fk_c_pos['contact_2'][1], fk_c_pos['contact_2'][2])
+    point3 = Point(fk_c_pos['contact_3'][0],fk_c_pos['contact_3'][1], fk_c_pos['contact_3'][2]) 
+    point4 = Point(fk_c_pos['contact_4'][0],fk_c_pos['contact_4'][1], fk_c_pos['contact_4'][2]) 
 
-    line_marker.points.append(start_point)
-    line_marker.points.append(end_point)
-
-    line_marker.header.stamp = rospy.Time.now()
-    marker_pub.publish(line_marker)
+    # Append points to form a closed polygon
+    polygon_marker.points.append(point1)
+    polygon_marker.points.append(point2)
+    polygon_marker.points.append(point4)
+    polygon_marker.points.append(point3)  
+    polygon_marker.points.append(point1)  
+    marker_pub.publish(polygon_marker)
     # ============================================================================
 
 

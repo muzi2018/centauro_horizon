@@ -7,7 +7,6 @@ Panels:
         - /Global Options1
         - /Status1
         - /RobotModel1
-        - /RobotModel1/Status1
         - /PointStamped1
         - /PointStamped2
         - /PointStamped3
@@ -411,6 +410,14 @@ Visualization Manager:
       Topic: /zmp_pub
       Unreliable: false
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /polygon_marker
+      Name: Marker
+      Namespaces:
+        polygon: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -439,7 +446,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 17.280109405517578
+      Distance: 3.673154592514038
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -447,17 +454,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.37132883071899414
-        Y: -1.6278150081634521
-        Z: 0.5392001271247864
+        X: 1.378777265548706
+        Y: -0.2762269973754883
+        Z: 0.7344935536384583
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.26039934158325195
+      Pitch: 0.2753993272781372
       Target Frame: <Fixed Frame>
-      Yaw: 4.445472717285156
+      Yaw: 5.890500068664551
     Saved: ~
 Window Geometry:
   Displays:
@@ -475,5 +482,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1920
-  X: 347
-  Y: 311
+  X: 2763
+  Y: 342
