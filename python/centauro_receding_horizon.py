@@ -279,7 +279,6 @@ fixed_joint_map.update(head_map)
 urdf = urdf.replace('continuous', 'revolute')
 
 kin_dyn = casadi_kin_dyn.CasadiKinDyn(urdf, fixed_joints=fixed_joint_map)
-
 model = FullModelInverseDynamics(problem=prb,
                                  kd=kin_dyn,
                                  q_init=q_init,
