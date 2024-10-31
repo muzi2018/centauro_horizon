@@ -10,7 +10,7 @@
 
     <arg name="rviz" default="true"/>
     <arg name="gazebo" default="true"/>
-    <arg name="base_estimation" default="true"/>
+
     <!-- <arg name="xbot" default="true" /> -->
 
 
@@ -23,8 +23,8 @@
 
     <node pkg="centauro_horizon" type="xbot2-core" name="xbot2" output="screen"
         args="--hw sim --simtime --config $(arg xbot2_config) --"/>
-    <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_pelvis_tf" 
-        args="0 0 0.8 0 0 0 world pelvis" />
+    <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_pelvis_tf" 
+        args="0 0 0.8 0 0 0 world pelvis" /> -->
 
 
     <group if = "$(arg gazebo)">
@@ -34,10 +34,7 @@
         <node pkg="rviz" type="rviz" name="rviz" args="-d $(find centauro_horizon)/rviz/centauro.rviz"/>
     </group>
 
-    <!-- base estimation -->
-    <include file="$(find base_estimation)/launch/centauro_base_estimation.launch" if="$(arg base_estimation)">
-    	<arg name="launch-prefix" value="gnome-terminal --"/>
-    </include>
+
 
 
 </launch>

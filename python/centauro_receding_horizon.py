@@ -32,7 +32,8 @@ import cartesian_interface.pyci as pyci
 import cartesian_interface.affine3
 import time
 
-
+from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Point
 
 import colorama
 # exit()
@@ -527,6 +528,8 @@ contact4_point = PointStamped()
 c_mean_pub = rospy.Publisher('c_mean_pub', PointStamped, queue_size=10)
 c_mean_point = PointStamped()
 
+marker_pub = rospy.Publisher('/line_marker', Marker, queue_size=10)
+
 data = np.zeros((3, 1))
 
 
@@ -664,6 +667,38 @@ while not rospy.is_shutdown():
     contact4_pub.publish(contact4_point)
     # ============================================================================
 
+    # =========================== publish contact line ========================
+    # Define the line marker
+    line_marker = Marker()
+    line_marker.header.frame_id = "odometry/world"  # Adjust frame if necessary
+    line_marker.header.stamp = rospy.Time.now()
+    line_marker.ns = "lines"
+    line_marker.id = 0
+    line_marker.type = Marker.LINE_STRIP  # or Marker.LINE_LIST for individual line segments
+    line_marker.action = Marker.ADD
+    # Line color and scale
+    line_marker.scale.x = 0.02  # Line width
+    line_marker.color.r = 1.0   # Red
+    line_marker.color.g = 0.0   # Green
+    line_marker.color.b = 0.0   # Blue
+    line_marker.color.a = 1.0   # Opacity
+    # Add points to the line
+    start_point = Point()
+    start_point.x = fk_c_pos['contact_1'][0]
+    start_point.y = fk_c_pos['contact_1'][1]
+    start_point.z = fk_c_pos['contact_1'][2]
+
+    end_point = Point()
+    end_point.x = fk_c_pos['contact_2'][0]
+    end_point.y = fk_c_pos['contact_2'][1]
+    end_point.z = fk_c_pos['contact_2'][2]
+
+    line_marker.points.append(start_point)
+    line_marker.points.append(end_point)
+
+    line_marker.header.stamp = rospy.Time.now()
+    marker_pub.publish(line_marker)
+    # ============================================================================
 
 
     solution_time_publisher.publish(Float64(data=time.time() - t0))
