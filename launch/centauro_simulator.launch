@@ -27,9 +27,14 @@
         args="0 0 0.8 0 0 0 world pelvis" /> -->
 
 
-    <group if = "$(arg gazebo)">
+    <!-- <group if = "$(arg gazebo)">
         <include file="$(find centauro_gazebo)/launch/centauro_world.launch" pass_all_args="true"/>
+    </group> -->
+
+    <group if = "$(arg gazebo)">
+        <include file="$(find centauro_gazebo)/launch/centauro_terrain_1.launch" pass_all_args="true"/>
     </group>
+
     <group if="$(arg rviz)">
         <node pkg="rviz" type="rviz" name="rviz" args="-d $(find centauro_horizon)/rviz/centauro.rviz"/>
     </group>
