@@ -197,6 +197,7 @@ RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
   python/centauro_receding_horizon.py
+  python/centauro_visualizer.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -238,6 +239,10 @@ install(DIRECTORY scripts/ USE_SOURCE_PERMISSIONS
 install(DIRECTORY config/
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
         FILES_MATCHING PATTERN "*.yaml"
+)
+install(DIRECTORY rviz/
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/rviz
+        FILES_MATCHING PATTERN "*.rviz"
 )
 #############
 ## Testing ##

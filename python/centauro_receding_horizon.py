@@ -32,7 +32,8 @@ import cartesian_interface.pyci as pyci
 import cartesian_interface.affine3
 import time
 
-
+from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Point
 
 import colorama
 # exit()
@@ -183,7 +184,10 @@ robot = None
 
 
 if xbot_param:
+    print ("xbot i on")
+    # exit()
     robot = xbot.RobotInterface(cfg)
+    model_fk = robot.model()
     robot.sense()
 
     if not closed_loop:
@@ -275,7 +279,6 @@ fixed_joint_map.update(head_map)
 urdf = urdf.replace('continuous', 'revolute')
 
 kin_dyn = casadi_kin_dyn.CasadiKinDyn(urdf, fixed_joints=fixed_joint_map)
-
 model = FullModelInverseDynamics(problem=prb,
                                  kd=kin_dyn,
                                  q_init=q_init,
@@ -493,6 +496,10 @@ gm = GaitManager(ti, pm, contact_phase_map)
 gait_manager_ros = GaitManagerROS(gm)
 
 robot_joint_names = [elem for elem in kin_dyn.joint_names() if elem not in ['universe', 'reference']]
+
+# print("robot_joint_names = ", robot_joint_names) # robot_joint
+# exit()
+
 q_robot = np.zeros(len(robot_joint_names))
 qdot_robot = np.zeros(len(robot_joint_names))
 wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', ContactWrenches, latch=False, queue_size =1)
@@ -500,10 +507,29 @@ wrench_pub = rospy.Publisher('centauro_base_estimation/contacts/set_wrench', Con
 
 from geometry_msgs.msg import PointStamped
 zmp_pub = rospy.Publisher('zmp_pub', PointStamped, queue_size=10)
-# zmp_f = ti.getTask('zmp')._zmp_fun()
+zmp_f = ti.getTask('zmp')._zmp_fun()
 zmp_point = PointStamped()
+
+# robot
+contact1_pub = rospy.Publisher('contact1_pub', PointStamped, queue_size=10)
+contact1_point = PointStamped()
+
+contact2_pub = rospy.Publisher('contact2_pub', PointStamped, queue_size=10)
+contact2_point = PointStamped()
+
+contact3_pub = rospy.Publisher('contact3_pub', PointStamped, queue_size=10)
+contact3_point = PointStamped()
+
+contact4_pub = rospy.Publisher('contact4_pub', PointStamped, queue_size=10)
+contact4_point = PointStamped()
+
+
 c_mean_pub = rospy.Publisher('c_mean_pub', PointStamped, queue_size=10)
 c_mean_point = PointStamped()
+
+marker_pub = rospy.Publisher('/polygon_marker', Marker, queue_size=10)
+
+data = np.zeros((3, 1))
 
 
 while not rospy.is_shutdown():
@@ -534,6 +560,9 @@ while not rospy.is_shutdown():
 
     pm.shift()
 
+    timeline1 = pm.getTimelines()['contact_1_timeline']
+    # printAllPhases(timeline1, add_element_info=True)
+
     # publishes to ros phase manager info
     rs.run()
 
@@ -544,7 +573,7 @@ while not rospy.is_shutdown():
     solution = ti.solution
 
     sol_msg = WBTrajectory()
-    sol_msg.header.frame_id = 'world'
+    sol_msg.header.frame_id = 'odometry/world'
     sol_msg.header.stamp = rospy.Time.now()
 
     sol_msg.joint_names = robot_joint_names
@@ -559,8 +588,117 @@ while not rospy.is_shutdown():
             Vector3(x=solution[f'f_{frame}'][0, 0], y=solution[f'f_{frame}'][1, 0], z=solution[f'f_{frame}'][2, 0]))
 
     solution_publisher.publish(sol_msg)
-    solution_time_publisher.publish(Float64(data=time.time() - t0))
 
+    # =========================== publish zmp =================================================
+    input_zmp = []
+    input_zmp.append(solution['q'][:, 0])
+    # print("solution['q'] = ", solution['q'].shape)
+    input_zmp.append(solution['v'][:, 0])
+    input_zmp.append(solution['a'][:, 0])
+    
+    for f_var in model.fmap.keys():
+        input_zmp.append(solution[f"f_{f_var}"][:, 0])
+    
+    c_mean = np.zeros([3, 1])
+    f_tot = np.zeros([3, 1])
+    fk_c_pos = {}
+    for c_name, f_var in model.fmap.items():
+        fk_c_pos[c_name] = kin_dyn.fk(c_name)(q=solution['q'][:, 0])['ee_pos'].toarray() # ee_pos
+        print("the contact ",c_name, " position = ")
+        print("fk_c_pos = ", fk_c_pos[c_name])
+        c_mean += fk_c_pos[c_name] * solution[f"f_{c_name}"][2, 0]
+        f_tot += solution[f"f_{c_name}"][2, 0]
+    
+    print(f_tot[2, 0])
+    c_mean /= f_tot
+    
+    zmp_val = zmp_f(*input_zmp)
+    # zmp_val = zmp_f()
+    
+    zmp_point.header.stamp = rospy.Time.now()
+    zmp_point.header.frame_id = 'odometry/world'
+    zmp_point.point.x = zmp_val[0]
+    zmp_point.point.y = zmp_val[1]
+    zmp_point.point.z = 0
+    zmp_pub.publish(zmp_point)
+    
+    c_mean_point.header.stamp = rospy.Time.now()
+    c_mean_point.header.frame_id = 'odometry/world'
+    c_mean_point.point.x = c_mean[0]
+    c_mean_point.point.y = c_mean[1]
+    c_mean_point.point.z = 0
+    
+    c_mean_pub.publish(c_mean_point)
+    # ============================================================================
+
+
+    # =========================== publish contact position ========================
+    contact1_point = PointStamped()
+    contact1_point.header.stamp = rospy.Time.now()
+    contact1_point.header.frame_id = 'odometry/world'
+    contact1_point.point.x = fk_c_pos['contact_1'][0] + 0.16
+    contact1_point.point.y = fk_c_pos['contact_1'][1] 
+    contact1_point.point.z = fk_c_pos['contact_1'][2]
+    contact1_pub.publish(contact1_point)
+
+    contact2_point = PointStamped()
+    contact2_point.header.stamp = rospy.Time.now()
+    contact2_point.header.frame_id = 'odometry/world'
+    contact2_point.point.x = fk_c_pos['contact_2'][0] + 0.16
+    contact2_point.point.y = fk_c_pos['contact_2'][1]
+    contact2_point.point.z = fk_c_pos['contact_2'][2]
+    contact2_pub.publish(contact2_point)
+
+    contact3_point = PointStamped()
+    contact3_point.header.stamp = rospy.Time.now()
+    contact3_point.header.frame_id = 'odometry/world'
+    contact3_point.point.x = fk_c_pos['contact_3'][0] + 0.16
+    contact3_point.point.y = fk_c_pos['contact_3'][1]
+    contact3_point.point.z = fk_c_pos['contact_3'][2]
+    contact3_pub.publish(contact3_point)
+
+    contact4_point = PointStamped()
+    contact4_point.header.stamp = rospy.Time.now()
+    contact4_point.header.frame_id = 'odometry/world'
+    contact4_point.point.x = fk_c_pos['contact_4'][0] + 0.16
+    contact4_point.point.y = fk_c_pos['contact_4'][1]
+    contact4_point.point.z = fk_c_pos['contact_4'][2]
+    contact4_pub.publish(contact4_point)
+    # ============================================================================
+
+    # =========================== publish contact line ========================
+    # Define the polygon marker
+    polygon_marker = Marker()
+    polygon_marker.header.frame_id = "odometry/world"  # Adjust frame as needed
+    polygon_marker.header.stamp = rospy.Time.now()
+    polygon_marker.ns = "polygon"
+    polygon_marker.id = 0
+    polygon_marker.type = Marker.LINE_STRIP  # LINE_STRIP to close the shape
+    polygon_marker.action = Marker.ADD
+    # Set polygon color and scale
+    polygon_marker.scale.x = 0.02  # Line width
+    polygon_marker.color.r = 0.0   # Red
+    polygon_marker.color.g = 1.0   # Green
+    polygon_marker.color.b = 0.0   # Blue
+    polygon_marker.color.a = 1.0   # Opacity
+
+    # Define points of the polygon (example: triangle)
+    point1 = Point(fk_c_pos['contact_1'][0] + 0.16,fk_c_pos['contact_1'][1], fk_c_pos['contact_1'][2])
+    point2 = Point(fk_c_pos['contact_2'][0] + 0.16,fk_c_pos['contact_2'][1], fk_c_pos['contact_2'][2])
+    point3 = Point(fk_c_pos['contact_3'][0] + 0.16,fk_c_pos['contact_3'][1], fk_c_pos['contact_3'][2]) 
+    point4 = Point(fk_c_pos['contact_4'][0] + 0.16,fk_c_pos['contact_4'][1], fk_c_pos['contact_4'][2]) 
+
+    # Append points to form a closed polygon
+    polygon_marker.points.append(point1)
+    polygon_marker.points.append(point2)
+    polygon_marker.points.append(point4)
+    polygon_marker.points.append(point3)  
+    polygon_marker.points.append(point1)  
+    marker_pub.publish(polygon_marker)
+    # ============================================================================
+
+
+    solution_time_publisher.publish(Float64(data=time.time() - t0))
     rate.sleep()
 
 
