@@ -7,8 +7,11 @@ Panels:
         - /Global Options1
         - /Status1
         - /RobotModel1
-        - /TF1
-        - /TF1/Frames1
+        - /RobotModel1/Links1
+        - /RobotModel1/Links1/contact_11
+        - /RobotModel1/Links1/contact_21
+        - /RobotModel1/Links1/contact_31
+        - /RobotModel1/Links1/contact_41
       Splitter Ratio: 0.5
     Tree Height: 1069
   - Class: rviz/Selection
@@ -209,15 +212,15 @@ Visualization Manager:
           Show Trail: false
         contact_2:
           Alpha: 1
-          Show Axes: false
+          Show Axes: true
           Show Trail: false
         contact_3:
           Alpha: 1
-          Show Axes: false
+          Show Axes: true
           Show Trail: false
         contact_4:
           Alpha: 1
-          Show Axes: false
+          Show Axes: true
           Show Trail: false
         d435_head_motor:
           Alpha: 1
@@ -775,7 +778,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 5.690382480621338
+      Distance: 2.7527005672454834
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -791,9 +794,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.24479758739471436
+      Pitch: 0.39979737997055054
       Target Frame: <Fixed Frame>
-      Yaw: 1.1023166179656982
+      Yaw: 1.732317328453064
     Saved: ~
 Window Geometry:
   Displays:
