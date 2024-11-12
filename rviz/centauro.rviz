@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /RobotModel1
+        - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.5
     Tree Height: 1069
@@ -580,7 +581,7 @@ Visualization Manager:
         hip2_4:
           Value: false
         imu_link:
-          Value: false
+          Value: true
         knee_1:
           Value: false
         knee_2:
@@ -790,9 +791,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4353993833065033
+      Pitch: 0.24479758739471436
       Target Frame: <Fixed Frame>
-      Yaw: 1.6573151350021362
+      Yaw: 1.1023166179656982
     Saved: ~
 Window Geometry:
   Displays:
