@@ -636,15 +636,15 @@ while not rospy.is_shutdown():
     contact1_point = PointStamped()
     contact1_point.header.stamp = rospy.Time.now()
     contact1_point.header.frame_id = 'odometry/world'
-    contact1_point.point.x = fk_c_pos['contact_1'][0]
-    contact1_point.point.y = fk_c_pos['contact_1'][1]
+    contact1_point.point.x = fk_c_pos['contact_1'][0] + 0.16
+    contact1_point.point.y = fk_c_pos['contact_1'][1] 
     contact1_point.point.z = fk_c_pos['contact_1'][2]
     contact1_pub.publish(contact1_point)
 
     contact2_point = PointStamped()
     contact2_point.header.stamp = rospy.Time.now()
     contact2_point.header.frame_id = 'odometry/world'
-    contact2_point.point.x = fk_c_pos['contact_2'][0]
+    contact2_point.point.x = fk_c_pos['contact_2'][0] + 0.16
     contact2_point.point.y = fk_c_pos['contact_2'][1]
     contact2_point.point.z = fk_c_pos['contact_2'][2]
     contact2_pub.publish(contact2_point)
@@ -652,7 +652,7 @@ while not rospy.is_shutdown():
     contact3_point = PointStamped()
     contact3_point.header.stamp = rospy.Time.now()
     contact3_point.header.frame_id = 'odometry/world'
-    contact3_point.point.x = fk_c_pos['contact_3'][0]
+    contact3_point.point.x = fk_c_pos['contact_3'][0] + 0.16
     contact3_point.point.y = fk_c_pos['contact_3'][1]
     contact3_point.point.z = fk_c_pos['contact_3'][2]
     contact3_pub.publish(contact3_point)
@@ -660,7 +660,7 @@ while not rospy.is_shutdown():
     contact4_point = PointStamped()
     contact4_point.header.stamp = rospy.Time.now()
     contact4_point.header.frame_id = 'odometry/world'
-    contact4_point.point.x = fk_c_pos['contact_4'][0]
+    contact4_point.point.x = fk_c_pos['contact_4'][0] + 0.16
     contact4_point.point.y = fk_c_pos['contact_4'][1]
     contact4_point.point.z = fk_c_pos['contact_4'][2]
     contact4_pub.publish(contact4_point)
@@ -683,10 +683,10 @@ while not rospy.is_shutdown():
     polygon_marker.color.a = 1.0   # Opacity
 
     # Define points of the polygon (example: triangle)
-    point1 = Point(fk_c_pos['contact_1'][0],fk_c_pos['contact_1'][1], fk_c_pos['contact_1'][2])
-    point2 = Point(fk_c_pos['contact_2'][0],fk_c_pos['contact_2'][1], fk_c_pos['contact_2'][2])
-    point3 = Point(fk_c_pos['contact_3'][0],fk_c_pos['contact_3'][1], fk_c_pos['contact_3'][2]) 
-    point4 = Point(fk_c_pos['contact_4'][0],fk_c_pos['contact_4'][1], fk_c_pos['contact_4'][2]) 
+    point1 = Point(fk_c_pos['contact_1'][0] + 0.16,fk_c_pos['contact_1'][1], fk_c_pos['contact_1'][2])
+    point2 = Point(fk_c_pos['contact_2'][0] + 0.16,fk_c_pos['contact_2'][1], fk_c_pos['contact_2'][2])
+    point3 = Point(fk_c_pos['contact_3'][0] + 0.16,fk_c_pos['contact_3'][1], fk_c_pos['contact_3'][2]) 
+    point4 = Point(fk_c_pos['contact_4'][0] + 0.16,fk_c_pos['contact_4'][1], fk_c_pos['contact_4'][2]) 
 
     # Append points to form a closed polygon
     polygon_marker.points.append(point1)
