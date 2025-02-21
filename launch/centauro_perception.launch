@@ -32,9 +32,9 @@
         <include file="$(find centauro_gazebo)/launch/centauro_plain.launch" pass_all_args="true"/>
     </group>
 
-    <group if="$(arg rviz)">
+    <!-- <group if="$(arg rviz)">
         <node pkg="rviz" type="rviz" name="rviz" args="-d $(find centauro_horizon)/rviz/centauro.rviz"/>
-    </group>
+    </group> -->
 
 
 

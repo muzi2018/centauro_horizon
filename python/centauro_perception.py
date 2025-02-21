@@ -8,6 +8,7 @@ from std_msgs.msg import Float64
 from xbot_interface import config_options as co
 from xbot_interface import xbot_interface as xbot
 from sensor_msgs.msg import Imu
+from sensor_msgs.msg import Image
 from geometry_msgs.msg import PoseStamped, TwistStamped, Vector3
 from geometry_msgs.msg import Wrench
 from scipy.spatial.transform import Rotation
@@ -15,19 +16,56 @@ import cartesian_interface.roscpp_utils as roscpp
 import cartesian_interface.pyci as pyci
 import cartesian_interface.affine3
 import time
-
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
-
-
-
 import colorama
+from cv_bridge import CvBridge
+import cv2
 # exit()
-rospy.init_node('centauro_walk_srbd')
-
-rospy.sleep(1.)
 
 
+
+
+bridge = CvBridge()
+depth_image = None  # Global variable to store depth data
+def depth_callback(msg):
+    global depth_image
+    depth_image = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+
+def image_callback(msg):
+    global depth_image
+    # print('depth_image')
+    if depth_image is None:
+        return
+
+    frame = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    # Define color range for object detection (red in this case)
+    lower_bound = np.array([0, 120, 70])
+    upper_bound = np.array([10, 255, 255])
+
+    # Mask and detect object
+    mask = cv2.inRange(hsv, lower_bound, upper_bound)
+    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    for cnt in contours:
+        x, y, w, h = cv2.boundingRect(cnt)
+        cx, cy = x + w // 2, y + h // 2  # Center of detected object
+
+        # Get depth value at (cx, cy)
+        depth_value = depth_image[cy, cx] if 0 <= cy < depth_image.shape[0] and 0 <= cx < depth_image.shape[1] else None
+
+        if depth_value is not None and depth_value > 0:
+            print(f"Object detected at: (X: {cx}, Y: {cy}, Depth: {depth_value}m)")
+
+        # Draw bounding box
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(frame, f"Depth: {depth_value:.2f}m", (x, y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+    cv2.imshow("Detected Object", frame)
+    cv2.waitKey(1)
 
 
 
@@ -47,6 +85,12 @@ def gt_pose_callback(msg):
     base_pose = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z,
                           msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z,
                           msg.pose.orientation.w])
+    
+
+
+
+rospy.init_node('centauro_walk_srbd')
+rospy.sleep(1.)    
 '''
 Load urdf and srdf
 '''
@@ -153,8 +197,11 @@ else:
     base_pose = np.array([0.07, 0., 0.8, 0., 0., 0., 1.])
     base_twist = np.zeros(6)
 
+rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback)
+# rospy.Subscriber("/camera/depth/image_raw", Image, depth_callback)
+
 while not rospy.is_shutdown():
-    # print('perception')
+    print('perception')
     rate.sleep()
 
 
