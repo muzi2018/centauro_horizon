@@ -2,9 +2,7 @@
 import rospy
 import rospkg
 import numpy as np
-
 from std_msgs.msg import Float64
-
 from xbot_interface import config_options as co
 from xbot_interface import xbot_interface as xbot
 from sensor_msgs.msg import Imu
@@ -21,6 +19,8 @@ from geometry_msgs.msg import Point
 import colorama
 from cv_bridge import CvBridge
 import cv2
+import matplotlib.pyplot as plt
+
 # exit()
 
 
@@ -30,12 +30,16 @@ bridge = CvBridge()
 depth_image = None  # Global variable to store depth data
 def depth_callback(msg):
     global depth_image
-    depth_image = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-
+    try:
+        depth_image = bridge.imgmsg_to_cv2(msg, desired_encoding="16UC1")
+        print("Converted depth image successfully")
+    except Exception as e:
+        print(f"Error converting depth image: {e}")
+        
 def image_callback(msg):
     global depth_image
-    # print('depth_image')
     if depth_image is None:
+        print("No depth image available yet")
         return
 
     frame = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
@@ -54,19 +58,23 @@ def image_callback(msg):
         cx, cy = x + w // 2, y + h // 2  # Center of detected object
 
         # Get depth value at (cx, cy)
-        depth_value = depth_image[cy, cx] if 0 <= cy < depth_image.shape[0] and 0 <= cx < depth_image.shape[1] else None
+        if depth_image is not None and 0 <= cy < depth_image.shape[0] and 0 <= cx < depth_image.shape[1]:
+            depth_value = depth_image[cy, cx]
+        else:
+            depth_value = None
 
         if depth_value is not None and depth_value > 0:
             print(f"Object detected at: (X: {cx}, Y: {cy}, Depth: {depth_value}m)")
 
         # Draw bounding box
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv2.putText(frame, f"Depth: {depth_value:.2f}m", (x, y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        cv2.putText(frame, f"Depth: {depth_value:.2f}m" if depth_value else "Depth: N/A",
+                    (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
+    # Ensure OpenCV displays the image
+    cv2.namedWindow("Detected Object", cv2.WINDOW_NORMAL)
     cv2.imshow("Detected Object", frame)
-    cv2.waitKey(1)
-
+    cv2.waitKey(1)  # Must be called to refresh the window
 
 
 def imu_callback(msg: Imu):
@@ -102,7 +110,7 @@ if srdf == '':
     raise print('srdf not set')
 file_dir = rospkg.RosPack().get_path('centauro_horizon')
 
-rate = rospy.Rate(100)
+rate = rospy.Rate(10)
 
 '''
 Build ModelInterface and RobotStatePublisher
@@ -197,11 +205,17 @@ else:
     base_pose = np.array([0.07, 0., 0.8, 0., 0., 0., 1.])
     base_twist = np.zeros(6)
 
-rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback)
-# rospy.Subscriber("/camera/depth/image_raw", Image, depth_callback)
+# rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback) 
+# rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, image_callback) 
+# rospy.Subscriber("/D435_head_camera/depth/color/points", Image, image_callback) 
+
+
+rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, depth_callback)
 
 while not rospy.is_shutdown():
-    print('perception')
+    # print('perception')
     rate.sleep()
+    # rospy.spin()
+
 
 
