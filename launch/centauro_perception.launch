@@ -1,8 +1,8 @@
 <launch>
     <arg name="arms" default="true"/>
     <arg name="legs" default="true"/>
-    <arg name="velodyne" default="false"/>
-    <arg name="realsense" default="false"/>
+    <arg name="velodyne" default="true"/>
+    <arg name="realsense" default="true"/>
     <arg name="end_effector_left" default="ball"/>
     <arg name="end_effector_right" default="dagana"/>
     <arg name="battery" default="false"/>
@@ -11,7 +11,7 @@
     <arg name="rviz" default="true"/>
     <arg name="gazebo" default="true"/>
 
-    <!-- <arg name="xbot" default="true" /> -->
+    <arg name="xbot" default="true" />
 
 
     <param name="/robot_description"
@@ -29,7 +29,7 @@
     </node>
 
     <group if = "$(arg gazebo)">
-        <include file="$(find centauro_gazebo)/launch/centauro_terrain_1.launch" pass_all_args="true"/>
+        <include file="$(find centauro_gazebo)/launch/centauro_plain.launch" pass_all_args="true"/>
     </group>
 
     <group if="$(arg rviz)">
