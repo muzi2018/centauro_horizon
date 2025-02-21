@@ -22,27 +22,16 @@ import cv2
 import matplotlib.pyplot as plt
 
 # exit()
-
-
-
-
 bridge = CvBridge()
-depth_image = None  # Global variable to store depth data
-def depth_callback(msg):
-    global depth_image
+        
+def image_callback(msg):
     try:
-        depth_image = bridge.imgmsg_to_cv2(msg, desired_encoding="16UC1")
+        depth_image = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         print("Converted depth image successfully")
     except Exception as e:
         print(f"Error converting depth image: {e}")
-        
-def image_callback(msg):
-    global depth_image
-    if depth_image is None:
-        print("No depth image available yet")
-        return
 
-    frame = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+    frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # Define color range for object detection (red in this case)
@@ -52,14 +41,15 @@ def image_callback(msg):
     # Mask and detect object
     mask = cv2.inRange(hsv, lower_bound, upper_bound)
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
     for cnt in contours:
+        print('cnt')
+
         x, y, w, h = cv2.boundingRect(cnt)
         cx, cy = x + w // 2, y + h // 2  # Center of detected object
 
         # Get depth value at (cx, cy)
         if depth_image is not None and 0 <= cy < depth_image.shape[0] and 0 <= cx < depth_image.shape[1]:
-            depth_value = depth_image[cy, cx]
+            depth_value = depth_image[cy, cx]/1000.0
         else:
             depth_value = None
 
@@ -205,12 +195,7 @@ else:
     base_pose = np.array([0.07, 0., 0.8, 0., 0., 0., 1.])
     base_twist = np.zeros(6)
 
-# rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback) 
-# rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, image_callback) 
-# rospy.Subscriber("/D435_head_camera/depth/color/points", Image, image_callback) 
-
-
-rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, depth_callback)
+rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback) 
 
 while not rospy.is_shutdown():
     # print('perception')
