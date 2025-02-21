@@ -20,51 +20,81 @@ import colorama
 from cv_bridge import CvBridge
 import cv2
 import matplotlib.pyplot as plt
+from ultralytics import YOLO  # Import YOLO model from the ultralytics package
 
 # exit()
 bridge = CvBridge()
+
+# Load YOLO model
+model = YOLO('yolo11n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
+
         
 def image_callback(msg):
     try:
-        depth_image = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-        print("Converted depth image successfully")
+        frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+        print("Converted image successfully")
     except Exception as e:
-        print(f"Error converting depth image: {e}")
+        print(f"Error converting image: {e}")
+        return
 
-    frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    # Run YOLO object detection on the frame
+    results = model(frame)  # YOLO detection
+    for result in results:
+        # Print bounding boxes (xyxy format: x1, y1, x2, y2)
+        print("Bounding Boxes:")
+        print(result.boxes.xyxy)  # You can access other formats as well (e.g., result.boxes.xyxyn)
 
-    # Define color range for object detection (red in this case)
-    lower_bound = np.array([0, 120, 70])
-    upper_bound = np.array([10, 255, 255])
 
-    # Mask and detect object
-    mask = cv2.inRange(hsv, lower_bound, upper_bound)
-    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    for cnt in contours:
-        print('cnt')
+        # # Print class labels
+        # print("Class Labels:")
+        # print(result.names)  # Prints a dictionary of class IDs to names
 
-        x, y, w, h = cv2.boundingRect(cnt)
-        cx, cy = x + w // 2, y + h // 2  # Center of detected object
+        # # Print object confidences (probabilities)
+        # print("Probabilities:")
+        # print(result.probs)  # If your model includes class probabilities
 
-        # Get depth value at (cx, cy)
-        if depth_image is not None and 0 <= cy < depth_image.shape[0] and 0 <= cx < depth_image.shape[1]:
-            depth_value = depth_image[cy, cx]/1000.0
-        else:
-            depth_value = None
 
-        if depth_value is not None and depth_value > 0:
-            print(f"Object detected at: (X: {cx}, Y: {cy}, Depth: {depth_value}m)")
+        
+    # detections = results[0]  # Get the first (and usually only) result from the list
+    
+    
+    # if detections :
+    #     print('detections got')
+    
+    # # Extract bounding boxes, class names, and confidence scores
+    # boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
+    # names = detections.names  # Dictionary mapping class IDs to class names
+    # probs = detections.probs  # Confidence scores for each detection
+    
+    # # if boxes is None:
+    # #     print('boxes is None')
 
-        # Draw bounding box
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv2.putText(frame, f"Depth: {depth_value:.2f}m" if depth_value else "Depth: N/A",
-                    (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    # # if names is None:
+    # #     print('boxes is None')
+        
+    # # if probs is None:
+    # #     print('boxes is None')
+
+    # for box, prob in zip(boxes, probs):
+    #     x1, y1, x2, y2 = box.tolist()  # Convert box tensor to list of coordinates
+    #     class_id = int(box[-1].item())  # Get class ID from the box (assuming it's the last element)
+    #     label_name = names[class_id]  # Get object label from names
+    #     confidence = prob.item()  # Convert probability tensor to a scalar value
+
+    #     # Draw the bounding box and label on the image
+    #     cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+    #     label_text = f"{label_name} {confidence:.2f}"
+    #     cv2.putText(frame, label_text, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
     # Ensure OpenCV displays the image
-    cv2.namedWindow("Detected Object", cv2.WINDOW_NORMAL)
-    cv2.imshow("Detected Object", frame)
+    cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
+    cv2.imshow("YOLO Object Detection", frame)
     cv2.waitKey(1)  # Must be called to refresh the window
+
+
+
+
+
 
 
 def imu_callback(msg: Imu):
@@ -100,7 +130,7 @@ if srdf == '':
     raise print('srdf not set')
 file_dir = rospkg.RosPack().get_path('centauro_horizon')
 
-rate = rospy.Rate(10)
+rate = rospy.Rate(100)
 
 '''
 Build ModelInterface and RobotStatePublisher
@@ -196,6 +226,7 @@ else:
     base_twist = np.zeros(6)
 
 rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback) 
+# rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, image_callback) 
 
 while not rospy.is_shutdown():
     # print('perception')
