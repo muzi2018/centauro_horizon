@@ -24,7 +24,7 @@
     <node pkg="centauro_horizon" type="xbot2-core" name="xbot2" output="screen"
         args="--hw sim --simtime --config $(arg xbot2_config) --"/>
 
-    <node pkg="centauro_horizon" type="centauro_receding_horizon.py" name="mpc_node" output="screen">
+    <node pkg="centauro_horizon" type="centauro_perception.py" name="mpc_node" output="screen">
         <rosparam param="closed_loop">False</rosparam>
     </node>
 

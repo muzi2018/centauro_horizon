@@ -198,6 +198,7 @@ RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 catkin_install_python(PROGRAMS
   python/centauro_receding_horizon.py
   python/centauro_visualizer.py
+  python/centauro_perception.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
