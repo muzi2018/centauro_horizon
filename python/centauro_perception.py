@@ -32,38 +32,45 @@ model = YOLO('yolo11n.pt')  # You can change the model to another pre-trained mo
 def image_callback(msg):
     try:
         frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+        frame = frame.copy() 
         print("Converted image successfully")
     except Exception as e:
         print(f"Error converting image: {e}")
         return
 
+# tensor([[ 60.7848, 276.5832, 293.8910, 677.3552],
+#         [752.0897, 279.6298, 957.5734, 659.7850]], device='cuda:0')
+    cnt = 0
     # Run YOLO object detection on the frame
-    results = model(frame)  # YOLO detection
+    results = model(frame, verbose=False)  # YOLO detection
     # for result in results:
+    #     cnt = cnt + 1
+    #     print("find object ", cnt)
     #     # Print bounding boxes (xyxy format: x1, y1, x2, y2)
-    #     print("Bounding Boxes:")
-    #     print(result.boxes.xyxy)  # You can access other formats as well (e.g., result.boxes.xyxyn)
+    #     if result.boxes is not None:
+    #         print("Bounding Boxes:")
+    #         print(result.boxes.xyxy)  # You can access other formats as well (e.g., result.boxes.xyxyn)
 
 
-        # # Print class labels
-        # print("Class Labels:")
-        # print(result.names)  # Prints a dictionary of class IDs to names
+    #     # Print class labels
+    #     print("Class Labels:")
+    #     print(result.names)  # Prints a dictionary of class IDs to names
 
-        # # Print object confidences (probabilities)
-        # print("Probabilities:")
-        # print(result.probs)  # If your model includes class probabilities
+    #     # Print object confidences (probabilities)
+    #     print("Probabilities:")
+    #     print(result.probs)  # If your model includes class probabilities
 
 
         
     detections = results[0]  # Get the first (and usually only) result from the list
     
     
-    if detections :
-        print('detections got')
+    # if detections :
+    #     print('detections got')
     
     # Extract bounding boxes, class names, and confidence scores
     boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
-    # names = detections.names  # Dictionary mapping class IDs to class names
+    # # names = detections.names  # Dictionary mapping class IDs to class names
     probs = detections.probs  # Confidence scores for each detection
     
     if boxes is None:
@@ -73,19 +80,21 @@ def image_callback(msg):
     # #     print('boxes is None')
         
     if probs is None:
-        print('boxes is None')
+        print('probs is None')
 
-    # for box, prob in zip(boxes, probs):
-    #     x1, y1, x2, y2 = box.tolist()  # Convert box tensor to list of coordinates
-    #     class_id = int(box[-1].item())  # Get class ID from the box (assuming it's the last element)
-    #     label_name = names[class_id]  # Get object label from names
-    #     confidence = prob.item()  # Convert probability tensor to a scalar value
+    for box in boxes:
+        x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
+        conf = box.conf[0].item()
+        cls = int(box.cls[0].item())
+        class_name = model.names[cls]
+        print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
 
-    #     # Draw the bounding box and label on the image
-    #     cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-    #     label_text = f"{label_name} {confidence:.2f}"
-    #     cv2.putText(frame, label_text, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-
+        print("Box:", box.xyxy.tolist())  # Check structure
+        # Draw the bounding box and label on the image
+        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+        cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        
     # Ensure OpenCV displays the image
     cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
     cv2.imshow("YOLO Object Detection", frame)
@@ -130,7 +139,7 @@ if srdf == '':
     raise print('srdf not set')
 file_dir = rospkg.RosPack().get_path('centauro_horizon')
 
-rate = rospy.Rate(10)
+rate = rospy.Rate(50)
 
 '''
 Build ModelInterface and RobotStatePublisher
