@@ -38,36 +38,11 @@ def image_callback(msg):
         print(f"Error converting image: {e}")
         return
 
-# tensor([[ 60.7848, 276.5832, 293.8910, 677.3552],
-#         [752.0897, 279.6298, 957.5734, 659.7850]], device='cuda:0')
     cnt = 0
     # Run YOLO object detection on the frame
-    results = model(frame, verbose=False)  # YOLO detection
-    # for result in results:
-    #     cnt = cnt + 1
-    #     print("find object ", cnt)
-    #     # Print bounding boxes (xyxy format: x1, y1, x2, y2)
-    #     if result.boxes is not None:
-    #         print("Bounding Boxes:")
-    #         print(result.boxes.xyxy)  # You can access other formats as well (e.g., result.boxes.xyxyn)
-
-
-    #     # Print class labels
-    #     print("Class Labels:")
-    #     print(result.names)  # Prints a dictionary of class IDs to names
-
-    #     # Print object confidences (probabilities)
-    #     print("Probabilities:")
-    #     print(result.probs)  # If your model includes class probabilities
-
-
-        
+    results = model(frame, verbose=False)  # YOLO detection        
     detections = results[0]  # Get the first (and usually only) result from the list
-    
-    
-    # if detections :
-    #     print('detections got')
-    
+        
     # Extract bounding boxes, class names, and confidence scores
     boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
     # # names = detections.names  # Dictionary mapping class IDs to class names
@@ -75,9 +50,6 @@ def image_callback(msg):
     
     if boxes is None:
         print('boxes is None')
-
-    # # if names is None:
-    # #     print('boxes is None')
         
     if probs is None:
         print('probs is None')
@@ -90,7 +62,6 @@ def image_callback(msg):
         print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
 
         print("Box:", box.xyxy.tolist())  # Check structure
-        # Draw the bounding box and label on the image
         cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
         cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
@@ -99,11 +70,6 @@ def image_callback(msg):
     cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
     cv2.imshow("YOLO Object Detection", frame)
     cv2.waitKey(1)  # Must be called to refresh the window
-
-
-
-
-
 
 
 def imu_callback(msg: Imu):
