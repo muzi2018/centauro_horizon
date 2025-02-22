@@ -28,6 +28,27 @@ bridge = CvBridge()
 # Load YOLO model
 model = YOLO('yolo11n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
 
+def depth_callback(msg):
+    global depth_frame
+    try:
+        depth_frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")  # Depth in millimeters
+    except Exception as e:
+        print(f"Error converting depth image: {e}")
+
+def get_depth_at(x, y):
+    """Get depth value at a given (x, y) coordinate."""
+    global depth_frame
+    if depth_frame is None:
+        return None
+
+    # Ensure x, y are within bounds
+    h, w = depth_frame.shape
+    x, y = int(x), int(y)
+    if 0 <= x < w and 0 <= y < h:
+        return depth_frame[y, x] * 0.001  # Convert from mm to meters
+    return None
+        
+        
         
 def image_callback(msg):
     try:
@@ -38,7 +59,7 @@ def image_callback(msg):
         print(f"Error converting image: {e}")
         return
 
-    cnt = 0
+    cnt = 1
     # Run YOLO object detection on the frame
     results = model(frame, verbose=False)  # YOLO detection        
     detections = results[0]  # Get the first (and usually only) result from the list
@@ -51,25 +72,35 @@ def image_callback(msg):
     if boxes is None:
         print('boxes is None')
         
-    if probs is None:
-        print('probs is None')
+    # if probs is None:
+    #     print('probs is None')
 
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        depth = get_depth_at(cx, cy)  # Get depth value
+        
         conf = box.conf[0].item()
         cls = int(box.cls[0].item())
         class_name = model.names[cls]
         print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
+        print(f"Object {cnt} at ({cx}, {cy}) has depth: {depth} meters")
 
-        print("Box:", box.xyxy.tolist())  # Check structure
+        # print("Box:", box.xyxy.tolist())  # Check structure
         cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
         cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cnt = cnt + 1
         
+    print("\n\n")  # Prints two empty lines
     # Ensure OpenCV displays the image
     cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
     cv2.imshow("YOLO Object Detection", frame)
     cv2.waitKey(1)  # Must be called to refresh the window
+
+
+
+
 
 
 def imu_callback(msg: Imu):
@@ -201,7 +232,7 @@ else:
     base_twist = np.zeros(6)
 
 rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback) 
-# rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, image_callback) 
+rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, depth_callback) 
 
 while not rospy.is_shutdown():
     # print('perception')
