@@ -28,6 +28,23 @@ bridge = CvBridge()
 # Load YOLO model
 model = YOLO('yolo11n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
 
+def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
+    # Extract camera intrinsic parameters
+    fx = intrinsic_matrix[0, 0]  # Focal length in x
+    fy = intrinsic_matrix[1, 1]  # Focal length in y
+    cx_ = intrinsic_matrix[0, 2]  # Principal point x
+    cy_ = intrinsic_matrix[1, 2]  # Principal point y
+    
+    # Convert 2D pixel to 3D coordinates
+    Z = depth  # depth in meters
+    X = (cx - cx_) * Z / fx
+    Y = (cy - cy_) * Z / fy
+    
+    return X, Y, Z
+
+# get intrinsic_matrix from camera driver, 
+
+
 def depth_callback(msg):
     global depth_frame
     try:
@@ -75,16 +92,45 @@ def image_callback(msg):
     # if probs is None:
     #     print('probs is None')
 
+    focal_length_x = 924.2759399414062
+    focal_length_y = 924.2759399414062
+
+    center_x = 640.0
+    center_y = 360.0
+
+    intrinsic_matrix = np.array([[focal_length_x, 0, center_x],  # Replace with actual values
+                                 [0, focal_length_y, center_y],
+                                 [0, 0, 1]])
+
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
         depth = get_depth_at(cx, cy)  # Get depth value
+        
+        #get the 3d position in robot
+        X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
+        
+    
+
+# Converted image successfully
+# Detected chair with confidence 0.92 at [821.2330322265625, 531.0723876953125, 1011.9774169921875, 720.0]
+# Object 1 at (916.0, 625.0) has depth: 6.206 meters
+# 3D position of object 1: (1.85, 1.78, 6.21) meters
+# Detected chair with confidence 0.90 at [171.7823944091797, 531.0924072265625, 364.62261962890625, 720.0]
+# Object 2 at (268.0, 625.0) has depth: 6.214 meters
+# 3D position of object 2: (-2.50, 1.78, 6.21) meters
+# Detected chair with confidence 0.88 at [474.7502746582031, 504.52752685546875, 605.58447265625, 700.3257446289062]
+# Object 3 at (540.0, 602.0) has depth: 7.006 meters
+# 3D position of object 3: (-0.76, 1.83, 7.01) meters
+
+    
         
         conf = box.conf[0].item()
         cls = int(box.cls[0].item())
         class_name = model.names[cls]
         print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
         print(f"Object {cnt} at ({cx}, {cy}) has depth: {depth} meters")
+        print(f"3D position of object {cnt}: ({X:.2f}, {Y:.2f}, {Z:.2f}) meters")
 
         # print("Box:", box.xyxy.tolist())  # Check structure
         cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
