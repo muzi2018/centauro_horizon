@@ -39,10 +39,10 @@ def image_callback(msg):
 
     # Run YOLO object detection on the frame
     results = model(frame)  # YOLO detection
-    for result in results:
-        # Print bounding boxes (xyxy format: x1, y1, x2, y2)
-        print("Bounding Boxes:")
-        print(result.boxes.xyxy)  # You can access other formats as well (e.g., result.boxes.xyxyn)
+    # for result in results:
+    #     # Print bounding boxes (xyxy format: x1, y1, x2, y2)
+    #     print("Bounding Boxes:")
+    #     print(result.boxes.xyxy)  # You can access other formats as well (e.g., result.boxes.xyxyn)
 
 
         # # Print class labels
@@ -55,25 +55,25 @@ def image_callback(msg):
 
 
         
-    # detections = results[0]  # Get the first (and usually only) result from the list
+    detections = results[0]  # Get the first (and usually only) result from the list
     
     
-    # if detections :
-    #     print('detections got')
+    if detections :
+        print('detections got')
     
-    # # Extract bounding boxes, class names, and confidence scores
-    # boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
+    # Extract bounding boxes, class names, and confidence scores
+    boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
     # names = detections.names  # Dictionary mapping class IDs to class names
-    # probs = detections.probs  # Confidence scores for each detection
+    probs = detections.probs  # Confidence scores for each detection
     
-    # # if boxes is None:
-    # #     print('boxes is None')
+    if boxes is None:
+        print('boxes is None')
 
     # # if names is None:
     # #     print('boxes is None')
         
-    # # if probs is None:
-    # #     print('boxes is None')
+    if probs is None:
+        print('boxes is None')
 
     # for box, prob in zip(boxes, probs):
     #     x1, y1, x2, y2 = box.tolist()  # Convert box tensor to list of coordinates
@@ -130,7 +130,7 @@ if srdf == '':
     raise print('srdf not set')
 file_dir = rospkg.RosPack().get_path('centauro_horizon')
 
-rate = rospy.Rate(100)
+rate = rospy.Rate(10)
 
 '''
 Build ModelInterface and RobotStatePublisher
