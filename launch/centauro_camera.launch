@@ -1,0 +1,10 @@
+<launch>
+  <!-- Start Gazebo -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch"/>
+
+  <!-- Spawn RealSense -->
+  <node name="spawn_realsense" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model realsense" />
+
+  <!-- Load RealSense URDF -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(find realsense_gazebo_description)/urdf/_d435i_standalone.urdf.xacro"/>
+</launch> 
