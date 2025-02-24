@@ -3,8 +3,13 @@
   <include file="$(find gazebo_ros)/launch/empty_world.launch"/>
 
   <!-- Spawn RealSense -->
-  <node name="spawn_realsense" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model realsense" />
+  <node name="spawn_realsense" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model realsense -x 0 -y 0 -z 0.8" />
 
   <!-- Load RealSense URDF -->
   <param name="robot_description" command="$(find xacro)/xacro --inorder $(find realsense_gazebo_description)/urdf/_d435i_standalone.urdf.xacro"/>
+
+<node pkg="centauro_horizon" type="centauro_camera.py" name="camera_node" output="screen">
+    <rosparam param="closed_loop">False</rosparam>
+</node>
+
 </launch> 
