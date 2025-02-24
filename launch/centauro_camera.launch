@@ -26,7 +26,7 @@
 
 
     <!-- Argument to specify the world to load -->
-    <arg name="world_name" default="$(find centauro_gazebo)/worlds/centauro.world"/>
+    <arg name="world_name" default="$(find centauro_gazebo)/worlds/centauro_camera.world"/>
 
     <!-- Launch Gazebo with the specified world -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
