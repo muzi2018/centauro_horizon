@@ -111,19 +111,6 @@ def image_callback(msg):
         X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
         
     
-
-# Converted image successfully
-# Detected chair with confidence 0.92 at [821.2330322265625, 531.0723876953125, 1011.9774169921875, 720.0]
-# Object 1 at (916.0, 625.0) has depth: 6.206 meters
-# 3D position of object 1: (1.85, 1.78, 6.21) meters
-# Detected chair with confidence 0.90 at [171.7823944091797, 531.0924072265625, 364.62261962890625, 720.0]
-# Object 2 at (268.0, 625.0) has depth: 6.214 meters
-# 3D position of object 2: (-2.50, 1.78, 6.21) meters
-# Detected chair with confidence 0.88 at [474.7502746582031, 504.52752685546875, 605.58447265625, 700.3257446289062]
-# Object 3 at (540.0, 602.0) has depth: 7.006 meters
-# 3D position of object 3: (-0.76, 1.83, 7.01) meters
-
-    
         
         conf = box.conf[0].item()
         cls = int(box.cls[0].item())
@@ -134,8 +121,13 @@ def image_callback(msg):
 
         # print("Box:", box.xyxy.tolist())  # Check structure
         cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+        cv2.putText(frame, f"p ({X}, {Y}, {Z})", (int(cx), int(cy)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
         cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+
         cnt = cnt + 1
         
     print("\n\n")  # Prints two empty lines
