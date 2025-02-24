@@ -1,15 +1,44 @@
 <launch>
-  <!-- Start Gazebo -->
-  <include file="$(find gazebo_ros)/launch/empty_world.launch"/>
+    <!-- gazebo configuration parameters -->
+    <arg name="paused" default="false"/>
+    <arg name="use_sim_time" default="true"/>
+    <arg name="gui" default="true"/>
+    <arg name="headless" default="false"/>
+    <arg name="debug" default="false"/>
+    <arg name="physics" default="ode"/>
+    <arg name="verbose" default="false"/>
+    <arg name="extra_gazebo_args" default=""/>
 
-  <!-- Spawn RealSense -->
-  <node name="spawn_realsense" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model realsense -x 0 -y 0 -z 0.8" />
+    <arg unless="$(arg debug)" name="script_type" value="gzserver"/>
+    <arg     if="$(arg debug)" name="script_type" value="debug"/>
 
-  <!-- Load RealSense URDF -->
-  <param name="robot_description" command="$(find xacro)/xacro --inorder $(find realsense_gazebo_description)/urdf/_d435i_standalone.urdf.xacro"/>
+    <!-- Internal arguments, rewrite human-readable gazebo arguments to it's internal arguments -->
+    <arg unless="$(arg paused)" name="command_arg1" value=""/>
+    <arg     if="$(arg paused)" name="command_arg1" value="-u"/>
+    <arg unless="$(arg headless)" name="command_arg2" value=""/>
+    <arg     if="$(arg headless)" name="command_arg2" value="-r"/>
+    <arg unless="$(arg verbose)" name="command_arg3" value=""/>
+    <arg     if="$(arg verbose)" name="command_arg3" value="--verbose"/>
 
-<node pkg="centauro_horizon" type="centauro_camera.py" name="camera_node" output="screen">
+
+    <!-- Spawn RealSense -->
+    <node name="spawn_realsense" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model realsense -x 0 -y 0 -z 0.8" />
+
+
+    <!-- Argument to specify the world to load -->
+    <arg name="world_name" default="$(find centauro_gazebo)/worlds/centauro.world"/>
+
+    <!-- Launch Gazebo with the specified world -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(arg world_name)" />
+    </include>
+
+
+    <!-- Load RealSense URDF -->
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find realsense_gazebo_description)/urdf/_d435i_standalone.urdf.xacro"/>
+
+    <node pkg="centauro_horizon" type="centauro_camera.py" name="camera_node" output="screen">
     <rosparam param="closed_loop">False</rosparam>
-</node>
+    </node>
 
 </launch> 

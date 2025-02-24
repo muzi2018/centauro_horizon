@@ -37,6 +37,7 @@ def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
     
     # Convert 2D pixel to 3D coordinates
     Z = depth  # depth in meters
+    print("Z = ", Z)
     X = (cx - cx_) * Z / fx
     Y = (cy - cy_) * Z / fy
     
@@ -45,26 +46,26 @@ def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
 # get intrinsic_matrix from camera driver, 
 
 
-def depth_callback(msg):
-    global depth_frame
-    try:
-        depth_frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")  # Depth in millimeters
-        print("get the depth_frame")
-    except Exception as e:
-        print(f"Error converting depth image: {e}")
+# def depth_callback(msg):
+#     global depth_frame
+#     try:
+#         depth_frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")  # Depth in millimeters
+#         print("get the depth_frame")
+#     except Exception as e:
+#         print(f"Error converting depth image: {e}")
 
-def get_depth_at(x, y):
-    """Get depth value at a given (x, y) coordinate."""
-    global depth_frame
-    if depth_frame is None:
-        return None
+# def get_depth_at(x, y):
+#     """Get depth value at a given (x, y) coordinate."""
+#     global depth_frame
+#     if depth_frame is None:
+#         print("depth_frame is none")
 
-    # Ensure x, y are within bounds
-    h, w = depth_frame.shape
-    x, y = int(x), int(y)
-    if 0 <= x < w and 0 <= y < h:
-        return depth_frame[y, x] * 0.001  # Convert from mm to meters
-    return None
+#     # Ensure x, y are within bounds
+#     h, w = depth_frame.shape
+#     x, y = int(x), int(y)
+#     if 0 <= x < w and 0 <= y < h:
+#         return depth_frame[y, x] * 0.001  # Convert from mm to meters
+#     return None
         
         
         
@@ -107,10 +108,10 @@ def image_callback(msg):
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-        depth = get_depth_at(cx, cy)  # Get depth value
+        # depth = get_depth_at(cx, cy)  # Get depth value
         
         #get the 3d position in robot
-        X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
+        # X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
         
     
         
@@ -118,13 +119,13 @@ def image_callback(msg):
         cls = int(box.cls[0].item())
         class_name = model.names[cls]
         print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
-        print(f"Object {cnt} at ({cx}, {cy}) has depth: {depth} meters")
-        print(f"3D position of object {cnt}: ({X:.2f}, {Y:.2f}, {Z:.2f}) meters")
+        # print(f"Object {cnt} at ({cx}, {cy}) has depth: {depth} meters")
+        # print(f"3D position of object {cnt}: ({X:.2f}, {Y:.2f}, {Z:.2f}) meters")
 
         # print("Box:", box.xyxy.tolist())  # Check structure
         cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        cv2.putText(frame, f"p ({X}, {Y}, {Z})", (int(cx), int(cy)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        # cv2.putText(frame, f"p ({X}, {Y}, {Z})", (int(cx), int(cy)),
+        #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
@@ -139,10 +140,6 @@ def image_callback(msg):
     cv2.waitKey(1)  # Must be called to refresh the window
 
 
-
-
-
-
 rospy.init_node('centauro_camera')
 rospy.sleep(1.)    
 
@@ -150,12 +147,12 @@ rate = rospy.Rate(10)
 
 
 rospy.Subscriber("/D435i_camera/color/image_raw", Image, image_callback) 
-# rospy.Subscriber("/D435_camera/aligned_depth_to_color/image_raw", Image, depth_callback) 
+# rospy.Subscriber("/D435i_camera/depth/image_rect_raw", Image, depth_callback) 
 
 while not rospy.is_shutdown():
     print('perception2')
-
+    rospy.spin()
     rate.sleep()
 
-rospy.spin()
+
 
