@@ -199,6 +199,7 @@ catkin_install_python(PROGRAMS
   python/centauro_receding_horizon.py
   python/centauro_visualizer.py
   python/centauro_perception.py
+  python/centauro_camera.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
