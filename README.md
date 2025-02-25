@@ -16,3 +16,5 @@ using YOLO
 /D435_head_camera/color/image_raw -> Depth image
 
 ## Localization
+
+tutorial : https://www.youtube.com/watch?v=pxeU6HH5Gww
