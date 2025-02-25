@@ -54,19 +54,19 @@ def depth_callback(msg):
     except Exception as e:
         print(f"Error converting depth image: {e}")
 
-def get_depth_at(x, y):
-    """Get depth value at a given (x, y) coordinate."""
+def get_median_depth(x1, y1, x2, y2):
+    """Compute the median depth within the object's bounding box."""
     global depth_frame
     if depth_frame is None:
-        print("depth_frame is none")
+        return None
 
-    # Ensure x, y are within bounds 
-    h, w = depth_frame.shape # h = 720, w = 1280
-    x, y = int(x), int(y)
+    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+    depth_crop = depth_frame[y1:y2, x1:x2]  # Extract depth region
+    valid_depths = depth_crop[depth_crop > 0]  # Remove zero-depth pixels (invalid)
     
-    if 0 <= x < w and 0 <= y < h:
-        return depth_frame[y, x] * 0.001  # Convert from mm to meters
-    return None
+    if valid_depths.size > 0:
+        return np.median(valid_depths) * 0.001  # Convert mm to meters
+    return None  # Return None if no valid depths found
         
         
         
@@ -110,7 +110,7 @@ def image_callback(msg):
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-        depth = get_depth_at(cx, cy)  # Get depth value
+        depth = get_median_depth(x1, y1, x2, y2)  # Get depth value
         print("depth_value: ", depth)
         
         #get the 3d position in robot
@@ -127,19 +127,19 @@ def image_callback(msg):
 
         # print("Box:", box.xyxy.tolist())  # Check structure
         cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(cx), int(cy)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(frame, f"Z ({Z:.2f})", (int(cx), int(cy)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 4)
 
-        cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(frame, f"{class_name} ({X:.2f}, {Y:.2f})", (int(x1), int(y1) - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 4)
 
 
         cnt = cnt + 1
         
     print("\n\n")  # Prints two empty lines
     # Ensure OpenCV displays the image
-    cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
-    cv2.imshow("YOLO Object Detection", frame)
+    cv2.namedWindow("Object Detection", cv2.WINDOW_NORMAL)
+    cv2.imshow("Object Detection", frame)
     cv2.waitKey(1)  # Must be called to refresh the window
 
 
