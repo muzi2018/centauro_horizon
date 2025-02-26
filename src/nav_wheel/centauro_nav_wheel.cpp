@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     // initialize to a homing configuration
     Eigen::VectorXd qhome;
     model->getRobotState("home", qhome);
-    qhome[44] = 0.33;
+    // qhome[44] = 0.33;
     model->setJointPosition(qhome);
     model->update();
     XBot::Cartesian::Utils::RobotStatePublisher rspub (model);

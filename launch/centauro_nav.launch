@@ -2,16 +2,25 @@
 
   <!-- Load the URDF/SRDF into the ROS Parameter Server -->
     <!-- visualization config -->
-  <arg name="rviz"               default="false" />
+  <arg name="rviz"               default="true" />
+  <arg name="gazebo"               default="true" />
+  <arg name="xbot2_config" default="$(find centauro_config)/centauro_basic.yaml"/>
+  <arg name="xbot" default="true" />
 
   <!-- parameter load  -->
   <param name="robot_description" textfile="$(find centauro_urdf)/urdf/centauro.urdf"/>
   <param name="robot_description_semantic" textfile="$(find centauro_srdf)/srdf/centauro.srdf"/>
-  
+
+  <node pkg="centauro_horizon" type="xbot2-core" name="xbot2" output="screen"
+      args="--hw sim --simtime --config $(arg xbot2_config) --"/>
+
+  <group if = "$(arg gazebo)">
+      <include file="$(find centauro_gazebo)/launch/centauro_perception.launch" pass_all_args="true"/>
+  </group>
   <!-- rviz -->
+
   <group if="$(arg rviz)">
-    <arg name="rvizconfig" default="$(find centauro_long_task)/rviz/rviz.rviz" />
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rvizconfig)" output="screen" />
+      <node pkg="rviz" type="rviz" name="rviz" args="-d $(find centauro_horizon)/rviz/centauro.rviz"/>
   </group>
 
   <param name="problem_description_wheel"
