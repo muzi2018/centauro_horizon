@@ -20,7 +20,17 @@
 #include <std_srvs/Empty.h>
 #include <xbot_msgs/JointCommand.h>
 #include <std_msgs/Bool.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/convert.h>
+
 bool start_nav_bool = false;
+geometry_msgs::PoseStamped current_goal;  // Store the current goal
+// Callback function for receiving the goal pose from RViz
+void goalCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    current_goal = *msg;  // Update the goal pose
+}
+
 void printMessage(const std::string& message) {
   std::cout << message << std::endl;
 }
@@ -80,6 +90,10 @@ int main(int argc, char **argv)
                                                        ik_pb, ctx
                                                        );
     ros::ServiceServer service = nodeHandle.advertiseService("start_nav", start_nav);
+
+    // Subscribe to the 2D Nav Goal topic
+    ros::Subscriber goal_subscriber = nodeHandle.subscribe("/move_base_simple/goal", 1, goalCallback);
+
     ros::Rate r(10);
 
     double roll_e, pitch_e, yaw_e;
@@ -90,38 +104,14 @@ int main(int argc, char **argv)
     Eigen::Vector6d E;
     while (ros::ok())
     {
-        double x_e = 1;
-        double y_e = 2 ;
+        // Calculate the error between current position and goal position
+        double x_e = current_goal.pose.position.x;
+        double y_e = current_goal.pose.position.y;
+
+
         tf2::Quaternion q_;
-        q_.setW(0);
-        q_.setX(0);
-        q_.setY(0);
-        q_.setZ(1);
-        tf2::Matrix3x3 m(q_);
-        m.getRPY(roll_e, pitch_e, yaw_e);
+        tf2::fromMsg(current_goal.pose.orientation, q_);
 
-        E[0] = K_x * x_e * 0;
-        E[1] = K_y * y_e * 0;
-        E[2] = 0;
-        E[3] = 0;
-        E[4] = 0;
-        E[5] = K_yaw * 1;
-        car_cartesian->setVelocityReference(E);
-
-        solver->update(time_, dt);
-        model->getJointPosition(q);
-        model->getJointVelocity(qdot);
-        model->getJointAcceleration(qddot);
-        q += dt * qdot + 0.5 * std::pow(dt, 2) * qddot;
-        qdot += dt * qddot;
-        model->setJointPosition(q);
-        model->setJointVelocity(qdot);
-        model->update();
-        robot->setPositionReference(q.tail(robot->getJointNum()));
-        robot->setVelocityReference(qdot.tail(robot->getJointNum()));
-        robot->move();
-        time_ += dt;
-        rspub.publishTransforms(ros::Time::now(), "");
     }
         ros::spinOnce();
         r.sleep();
