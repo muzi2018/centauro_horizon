@@ -104,16 +104,46 @@ int main(int argc, char **argv)
     Eigen::Vector6d E;
     while (ros::ok())
     {
-        // Calculate the error between current position and goal position
-        double x_e = current_goal.pose.position.x;
-        double y_e = current_goal.pose.position.y;
+        if (!current_goal.header.stamp.isZero()){
+            // Calculate the error between current position and goal position
+            double x_e = current_goal.pose.position.x;
+            double y_e = current_goal.pose.position.y;
 
 
-        tf2::Quaternion q_;
-        tf2::fromMsg(current_goal.pose.orientation, q_);
+            tf2::Quaternion q_;
+            tf2::fromMsg(current_goal.pose.orientation, q_);
+            double roll_e, pitch_e, yaw_e;
+            tf2::Matrix3x3(q_).getRPY(roll_e, pitch_e, yaw_e);
 
-    }
+            // Calculate the error in position and orientation
+            E[0] = K_x * (x_e - 0);  // Assuming current x = 0 for simplicity
+            E[1] = K_y * (y_e - 0);  // Assuming current y = 0 for simplicity
+            E[2] = 0;
+            E[3] = 0;
+            E[4] = 0;
+            E[5] = K_yaw * yaw_e;
+
+            // Set velocity references to control the robot towards the goal
+            car_cartesian->setVelocityReference(E);
+
+            solver->update(time_, dt);
+            model->getJointPosition(q);
+            model->getJointVelocity(qdot);
+            model->getJointAcceleration(qddot);
+            q += dt * qdot + 0.5 * std::pow(dt, 2) * qddot;
+            qdot += dt * qddot;
+            model->setJointPosition(q);
+            model->setJointVelocity(qdot);
+            model->update();
+            robot->setPositionReference(q.tail(robot->getJointNum()));
+            robot->setVelocityReference(qdot.tail(robot->getJointNum()));
+            robot->move();
+        }
+        time_ += dt;
+        rspub.publishTransforms(ros::Time::now(), "");
+
         ros::spinOnce();
         r.sleep();
+    }
     return 0;
 }
