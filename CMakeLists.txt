@@ -13,8 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
             trajectory_msgs
             message_generation
             std_msgs
-            geometry_msgs
-            tf2_ros)
+            geometry_msgs)
 find_package(Eigen3 REQUIRED)
 find_package(XBotInterface REQUIRED)
 find_package(urdfdom REQUIRED)

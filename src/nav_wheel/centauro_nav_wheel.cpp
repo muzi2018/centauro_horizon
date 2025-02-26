@@ -20,7 +20,42 @@
 #include <std_srvs/Empty.h>
 #include <xbot_msgs/JointCommand.h>
 #include <std_msgs/Bool.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/convert.h>
+
 bool start_nav_bool = false;
+geometry_msgs::PoseStamped current_goal;  // Store the current goal
+tf2_ros::Buffer tfBuffer;  // Define tfBuffer globally so it can be accessed from callbacks
+// Callback function for receiving the goal pose from RViz
+void goalCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    // Store the original goal
+    current_goal = *msg;
+    
+    // Transform the goal to world frame
+    geometry_msgs::PoseStamped goal_in_world;
+    try {
+        // Transform the goal pose to world frame
+        tfBuffer.transform(*msg, goal_in_world, "world");
+        
+        // Update current_goal with the transformed pose
+        current_goal = goal_in_world;
+        
+        // Print debug information
+        ROS_INFO_STREAM("Transformed goal to world frame:");
+        ROS_INFO_STREAM("Position: (" << current_goal.pose.position.x << ", " 
+                  << current_goal.pose.position.y << ", " 
+                  << current_goal.pose.position.z << ")");
+        ROS_INFO_STREAM("Orientation: (" << current_goal.pose.orientation.x << ", " 
+                  << current_goal.pose.orientation.y << ", " 
+                  << current_goal.pose.orientation.z << ", " 
+                  << current_goal.pose.orientation.w << ")");
+    }
+    catch(tf2::TransformException &ex) {
+        ROS_ERROR_STREAM("Failed to transform goal pose to world frame: " << ex.what());
+    }
+}
+
 void printMessage(const std::string& message) {
   std::cout << message << std::endl;
 }
@@ -41,8 +76,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nodeHandle("");
 
     std_srvs::Empty srv;
-    // Create a Buffer and a TransformListener
-    tf2_ros::Buffer tfBuffer;
+    // Create a TransformListener for the global tfBuffer
     tf2_ros::TransformListener tfListener(tfBuffer);
 
     auto cfg = XBot::ConfigOptionsFromParamServer();
@@ -52,7 +86,7 @@ int main(int argc, char **argv)
     // initialize to a homing configuration
     Eigen::VectorXd qhome;
     model->getRobotState("home", qhome);
-    qhome[44] = 0.33;
+    // qhome[44] = 0.33;
     model->setJointPosition(qhome);
     model->update();
     XBot::Cartesian::Utils::RobotStatePublisher rspub (model);
@@ -80,6 +114,10 @@ int main(int argc, char **argv)
                                                        ik_pb, ctx
                                                        );
     ros::ServiceServer service = nodeHandle.advertiseService("start_nav", start_nav);
+
+    // Subscribe to the 2D Nav Goal topic
+    ros::Subscriber goal_subscriber = nodeHandle.subscribe("/move_base_simple/goal", 1, goalCallback);
+
     ros::Rate r(10);
 
     double roll_e, pitch_e, yaw_e;
@@ -90,40 +128,78 @@ int main(int argc, char **argv)
     Eigen::Vector6d E;
     while (ros::ok())
     {
-        double x_e = 1;
-        double y_e = 2 ;
-        tf2::Quaternion q_;
-        q_.setW(0);
-        q_.setX(0);
-        q_.setY(0);
-        q_.setZ(1);
-        tf2::Matrix3x3 m(q_);
-        m.getRPY(roll_e, pitch_e, yaw_e);
+        if (!current_goal.header.stamp.isZero()){
+            // Get current robot pose using TF2
+            geometry_msgs::PoseStamped current_pose;
+            try {
+                    // Get the transform as TransformStamped
+                    geometry_msgs::TransformStamped transformStamped =
+                        tfBuffer.lookupTransform("world", "base_link", ros::Time(0), ros::Duration(1.0));
+                    // Convert TransformStamped to PoseStamped
+                    current_pose.header = transformStamped.header;
+                    current_pose.pose.position.x = transformStamped.transform.translation.x;
+                    current_pose.pose.position.y = transformStamped.transform.translation.y;
+                    current_pose.pose.position.z = transformStamped.transform.translation.z;
+                    current_pose.pose.orientation = transformStamped.transform.rotation;
+            } catch (tf2::TransformException &ex) {
+                ROS_WARN("%s", ex.what());
+                continue;
+            }
+            
+            // Calculate the error between current position and goal position
+            double x_e = current_goal.pose.position.x - current_pose.pose.position.x;
+            double y_e = current_goal.pose.position.y - current_pose.pose.position.y;
 
-        E[0] = K_x * x_e * 0;
-        E[1] = K_y * y_e * 0;
-        E[2] = 0;
-        E[3] = 0;
-        E[4] = 0;
-        E[5] = K_yaw * 1;
-        car_cartesian->setVelocityReference(E);
+            // std::cout << "x_e: " ;
+            // std::cout << x_e << std::endl;
+            // std::cout << "y_e: " ;
+            // std::cout << y_e << std::endl;
 
-        solver->update(time_, dt);
-        model->getJointPosition(q);
-        model->getJointVelocity(qdot);
-        model->getJointAcceleration(qddot);
-        q += dt * qdot + 0.5 * std::pow(dt, 2) * qddot;
-        qdot += dt * qddot;
-        model->setJointPosition(q);
-        model->setJointVelocity(qdot);
-        model->update();
-        robot->setPositionReference(q.tail(robot->getJointNum()));
-        robot->setVelocityReference(qdot.tail(robot->getJointNum()));
-        robot->move();
+            // Calculate yaw errors
+            tf2::Quaternion q_goal, q_current;
+            tf2::fromMsg(current_goal.pose.orientation, q_goal);
+            tf2::fromMsg(current_pose.pose.orientation, q_current);
+
+            double roll_goal, pitch_goal, yaw_goal;
+            double roll_current, pitch_current, yaw_current;
+
+            tf2::Matrix3x3(q_goal).getRPY(roll_goal, pitch_goal, yaw_goal);
+            tf2::Matrix3x3(q_current).getRPY(roll_current, pitch_current, yaw_current);
+
+            // Calculate yaw error (difference between goal and current yaw)
+            double yaw_error = yaw_goal - yaw_current;
+
+            // Normalize the yaw error to [-π, π] range
+            yaw_error = std::atan2(std::sin(yaw_error), std::cos(yaw_error));
+            // Calculate the error in position and orientation
+            E[0] = K_x * (x_e - 0);  // Assuming current x = 0 for simplicity
+            E[1] = K_y * (y_e - 0);  // Assuming current y = 0 for simplicity
+            E[2] = 0;
+            E[3] = 0;
+            E[4] = 0;
+            E[5] = K_yaw * yaw_error;
+
+            // Set velocity references to control the robot towards the goal
+            car_cartesian->setVelocityReference(E);
+
+            solver->update(time_, dt);
+            model->getJointPosition(q);
+            model->getJointVelocity(qdot);
+            model->getJointAcceleration(qddot);
+            q += dt * qdot + 0.5 * std::pow(dt, 2) * qddot;
+            qdot += dt * qddot;
+            model->setJointPosition(q);
+            model->setJointVelocity(qdot);
+            model->update();
+            robot->setPositionReference(q.tail(robot->getJointNum()));
+            robot->setVelocityReference(qdot.tail(robot->getJointNum()));
+            robot->move();
+        }
         time_ += dt;
         rspub.publishTransforms(ros::Time::now(), "");
-    }
+
         ros::spinOnce();
         r.sleep();
+    }
     return 0;
 }
