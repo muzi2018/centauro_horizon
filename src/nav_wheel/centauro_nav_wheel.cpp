@@ -100,12 +100,12 @@ int main(int argc, char **argv)
         tf2::Matrix3x3 m(q_);
         m.getRPY(roll_e, pitch_e, yaw_e);
 
-        E[0] = K_x * x_e;
-        E[1] = K_y * y_e;
+        E[0] = K_x * x_e * 0;
+        E[1] = K_y * y_e * 0;
         E[2] = 0;
         E[3] = 0;
         E[4] = 0;
-        E[5] = K_yaw * 0;
+        E[5] = K_yaw * 1;
         car_cartesian->setVelocityReference(E);
 
         solver->update(time_, dt);
