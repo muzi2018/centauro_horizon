@@ -1,0 +1,25 @@
+﻿<launch>
+
+  <!-- Load the URDF/SRDF into the ROS Parameter Server -->
+    <!-- visualization config -->
+  <arg name="rviz"               default="false" />
+
+  <!-- parameter load  -->
+  <param name="robot_description" textfile="$(find centauro_urdf)/urdf/centauro.urdf"/>
+  <param name="robot_description_semantic" textfile="$(find centauro_srdf)/srdf/centauro.srdf"/>
+  
+  <!-- rviz -->
+  <group if="$(arg rviz)">
+    <arg name="rvizconfig" default="$(find centauro_long_task)/rviz/rviz.rviz" />
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rvizconfig)" output="screen" />
+  </group>
+
+  <param name="problem_description"
+          textfile="$(find centauro_horizon)/config/cartesio_stack_wheel.yaml"/> 
+
+
+    <!--Test node-->
+  <node pkg="centauro_horizon" name="centauro_nav_wheel" type="centauro_nav_wheel_node" output="screen"/>
+
+</launch>
+
