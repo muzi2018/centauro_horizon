@@ -13,11 +13,14 @@ find_package(catkin REQUIRED COMPONENTS
             trajectory_msgs
             message_generation
             std_msgs
-            geometry_msgs)
+            geometry_msgs
+            tf2_ros)
 find_package(Eigen3 REQUIRED)
+find_package(XBotInterface REQUIRED)
 find_package(urdfdom REQUIRED)
 find_package(pinocchio REQUIRED)
 find_package(XBotInterface REQUIRED)
+find_package(cartesian_interface REQUIRED)
 
 # find_package(PythonLibs REQUIRED)
 ## System dependencies are found with CMake's conventions
@@ -162,11 +165,18 @@ add_executable(controller
     src/controller_node.cpp
     src/controller.cpp)
 
+add_executable(centauro_nav_wheel_node src/nav_wheel/centauro_nav_wheel.cpp)
+
+target_link_libraries(centauro_nav_wheel_node 
+    ${catkin_LIBRARIES} 
+    ${cartesian_interface_LIBRARIES}
+)
+
 target_link_libraries(controller
     mpc_handler
     ${catkin_LIBRARIES})
 
-install(TARGETS controller
+install(TARGETS controller centauro_nav_wheel_node
 ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -200,6 +210,7 @@ catkin_install_python(PROGRAMS
   python/centauro_visualizer.py
   python/centauro_perception.py
   python/centauro_camera.py
+  python/centauro_slam.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
