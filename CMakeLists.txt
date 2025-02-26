@@ -210,6 +210,7 @@ catkin_install_python(PROGRAMS
   python/centauro_perception.py
   python/centauro_camera.py
   python/centauro_slam.py
+  python/pointcloud_capture.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
