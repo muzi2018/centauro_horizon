@@ -14,7 +14,7 @@
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rvizconfig)" output="screen" />
   </group>
 
-  <param name="problem_description"
+  <param name="problem_description_wheel"
           textfile="$(find centauro_horizon)/config/cartesio_stack_wheel.yaml"/> 
 
 

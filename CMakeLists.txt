@@ -13,11 +13,14 @@ find_package(catkin REQUIRED COMPONENTS
             trajectory_msgs
             message_generation
             std_msgs
-            geometry_msgs)
+            geometry_msgs
+            tf2_ros)
 find_package(Eigen3 REQUIRED)
+find_package(XBotInterface REQUIRED)
 find_package(urdfdom REQUIRED)
 find_package(pinocchio REQUIRED)
 find_package(XBotInterface REQUIRED)
+find_package(cartesian_interface REQUIRED)
 
 # find_package(PythonLibs REQUIRED)
 ## System dependencies are found with CMake's conventions
@@ -165,7 +168,8 @@ add_executable(controller
 add_executable(centauro_nav_wheel_node src/nav_wheel/centauro_nav_wheel.cpp)
 
 target_link_libraries(centauro_nav_wheel_node 
-  ${catkin_LIBRARIES} ${cartesian_interface_LIBRARIES}
+    ${catkin_LIBRARIES} 
+    ${cartesian_interface_LIBRARIES}
 )
 
 target_link_libraries(controller
