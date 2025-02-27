@@ -117,7 +117,7 @@ class PointCloudRecorder:
 
             # Create and apply voxel grid filter
             voxel_filter = pcl.VoxelGridFilter()
-            voxel_filter.set_input_cloud(cloud)
+            voxel_filter = cloud.make_voxel_grid_filter()
             voxel_filter.set_leaf_size(self.voxel_size, self.voxel_size, self.voxel_size)
             filtered_cloud = voxel_filter.filter()
 
