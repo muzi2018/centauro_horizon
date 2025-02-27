@@ -96,44 +96,29 @@ class PointCloudRecorder:
         return points[mask]
     
     def callback(self, msg):
-        """
-        Process and write point cloud message to bag file.
-        
-        Args:
-            msg (PointCloud2): Input point cloud message
-        """
         try:
-            # Convert to numpy array for processing
+            rospy.loginfo("PointCloud received")
             points = np.frombuffer(msg.data, dtype=np.float32)
+            rospy.loginfo(f"Received points: {len(points)}")
             points = points.reshape(-1, 8)  # x,y,z,rgb
             
-            # Apply point range filtering
             filtered_points = self.filter_points(points)
             
-            # Apply voxel grid filtering using PCL
-            # Convert to PCL point cloud
             cloud = pcl.PointCloud()
             cloud.from_array(filtered_points[:, :3].astype(np.float32))
 
-            # Create and apply voxel grid filter
-            voxel_filter = pcl.VoxelGridFilter()
             voxel_filter = cloud.make_voxel_grid_filter()
             voxel_filter.set_leaf_size(self.voxel_size, self.voxel_size, self.voxel_size)
             filtered_cloud = voxel_filter.filter()
 
-            # Convert back to numpy array
             voxel_points = np.zeros((filtered_cloud.size, 8), dtype=np.float32)
             voxel_points[:, :3] = np.array(filtered_cloud.to_array())
 
-            # Copy RGB and other data from original points where possible
-            # This is a simple approach - may need refinement based on specific needs
             for i, point in enumerate(voxel_points):
-                # Find closest point in original data to preserve color information
                 distances = np.sum((filtered_points[:, :3] - point[:3])**2, axis=1)
                 closest_idx = np.argmin(distances)
                 voxel_points[i, 3:] = filtered_points[closest_idx, 3:]
             
-            # Create new message with filtered points
             filtered_msg = PointCloud2()
             filtered_msg.header = msg.header
             filtered_msg.height = 1
@@ -144,12 +129,12 @@ class PointCloudRecorder:
             filtered_msg.is_bigendian = msg.is_bigendian
             filtered_msg.is_dense = msg.is_dense
             
-            # Write to bag file with compression
-            self.bag.write('/D435_head_camera/depth/color/points',
-                        filtered_msg)
-            
+            self.bag.write('/D435_head_camera/depth/color/points', filtered_msg)
+            rospy.loginfo("PointCloud written to bag")
+
         except Exception as e:
             rospy.logwarn(f"Error processing point cloud: {str(e)}")
+
     
     def start_recording(self, rate=1):
         """
@@ -183,6 +168,6 @@ if __name__ == '__main__':
             min_range=0.5,
             max_range=4.0
         )
-        recorder.start_recording(rate=1)
+        recorder.start_recording(rate=10)
     except rospy.ROSInterruptException:
         pass
