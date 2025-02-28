@@ -37,7 +37,7 @@
 
 
 
-  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_pelvis" 
-        args="0 0 1 0 0 0 1 world pelvis" /> -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_pelvis" 
+        args="0 0 1 0 0 0 1 world pelvis" />
 </launch>
 

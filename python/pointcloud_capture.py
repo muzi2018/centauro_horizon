@@ -28,6 +28,41 @@ import time
 import os
 import pcl
 
+# header: 
+#   seq: 2715
+#   stamp: 
+#     secs: 115
+#     nsecs: 254250000
+#   frame_id: "D435_head_camera_color_optical_frame"
+# height: 1
+# width: 29472
+# fields: 
+#   - 
+#     name: "x"
+#     offset: 0
+#     datatype: 7
+#     count: 1
+#   - 
+#     name: "y"
+#     offset: 4
+#     datatype: 7
+#     count: 1
+#   - 
+#     name: "z"
+#     offset: 8
+#     datatype: 7
+#     count: 1
+#   - 
+#     name: "rgb"
+#     offset: 16
+#     datatype: 7
+#     count: 1
+# is_bigendian: False
+# point_step: 32
+# row_step: 0
+# data:
+
+
 class PointCloudRecorder:
     def __init__(self, save_path=None, compression='lz4', 
                  voxel_size=0.01, min_range=0.5, max_range=4.0):
