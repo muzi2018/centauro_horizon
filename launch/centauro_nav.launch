@@ -2,17 +2,20 @@
 
   <!-- Load the URDF/SRDF into the ROS Parameter Server -->
     <!-- visualization config -->
-  <arg name="rviz"               default="true" />
-  <arg name="gazebo"               default="true" />
+  <arg name="rviz"               default="false" />
+  <arg name="gazebo"               default="false" />
   <arg name="xbot2_config" default="$(find centauro_config)/centauro_basic.yaml"/>
-  <arg name="xbot" default="true" />
+  <arg name="xbot" default="false" />
 
   <!-- parameter load  -->
   <param name="robot_description" textfile="$(find centauro_urdf)/urdf/centauro.urdf"/>
   <param name="robot_description_semantic" textfile="$(find centauro_srdf)/srdf/centauro.srdf"/>
 
-  <node pkg="centauro_horizon" type="xbot2-core" name="xbot2" output="screen"
-      args="--hw sim --simtime --config $(arg xbot2_config) --"/>
+
+  <group if="$(arg xbot)">
+    <node pkg="centauro_horizon" type="xbot2-core" name="xbot2" output="screen"
+        args="--hw sim --simtime --config $(arg xbot2_config) --"/>
+  </group>
 
   <group if = "$(arg gazebo)">
       <include file="$(find centauro_gazebo)/launch/centauro_perception.launch" pass_all_args="true"/>
@@ -28,8 +31,9 @@
 
 
     <!--Test node-->
-  <node pkg="centauro_horizon" name="centauro_nav_wheel" type="centauro_nav_wheel_node" output="screen"/>
+  <!-- <node pkg="centauro_horizon" name="centauro_nav_wheel" type="centauro_nav_wheel_node" output="screen"/> -->
 
+  <node pkg="centauro_horizon" name="centauro_command_key" type="centauro_command_key_node" output="screen"/>
 
 
   <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_pelvis" 
