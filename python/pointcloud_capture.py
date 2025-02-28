@@ -132,6 +132,7 @@ class PointCloudRecorder:
     
     def callback(self, msg):
         try:
+            print("PointCloud callback ...");
             rospy.loginfo("PointCloud received")
             points = np.frombuffer(msg.data, dtype=np.float32)
             rospy.loginfo(f"Received points: {len(points)}")
@@ -171,7 +172,7 @@ class PointCloudRecorder:
             rospy.logwarn(f"Error processing point cloud: {str(e)}")
 
     
-    def start_recording(self, rate=1):
+    def start_recording(self, rate):
         """
         Start recording point cloud data.
         
@@ -203,6 +204,6 @@ if __name__ == '__main__':
             min_range=0.5,
             max_range=4.0
         )
-        recorder.start_recording(rate=10)
+        recorder.start_recording(rate=30)
     except rospy.ROSInterruptException:
         pass

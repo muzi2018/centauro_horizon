@@ -110,7 +110,7 @@ int main(int argc, char **argv)
     ros::Rate r(10);
 
     double x_e = 1, y_e = 1, yaw_e = 1;
-    double K_x = 0.2, K_y = 0.2, K_yaw = 0.2;
+    double K_x = 0.1, K_y = 0.1, K_yaw = 0.1;
 
     Eigen::VectorXd q, qdot, qddot;
     auto car_task = solver->getTask("base_link");
