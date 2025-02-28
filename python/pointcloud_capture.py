@@ -27,6 +27,10 @@ import rosbag
 import time
 import os
 import pcl
+from threading import Thread
+from queue import Queue
+from sensor_msgs.msg import PointCloud2, PointField  # Import PointField
+
 
 # header: 
 #   seq: 2715
@@ -65,7 +69,7 @@ import pcl
 
 class PointCloudRecorder:
     def __init__(self, save_path=None, compression='lz4', 
-                 voxel_size=0.01, min_range=0.5, max_range=4.0):
+                 voxel_size=0.01, min_range=0.5, max_range=4.0, skip_frames=5):
         """
         Initialize the PointCloudRecorder with compression and filtering options.
         
@@ -109,6 +113,13 @@ class PointCloudRecorder:
         self.voxel_size = voxel_size
         self.min_range = min_range
         self.max_range = max_range
+        self.skip_frames = skip_frames
+        self.frame_count = 0
+        
+        # Threaded processing
+        self.queue = Queue()
+        self.worker_thread = Thread(target=self.process_queue, daemon=True)
+        self.worker_thread.start()
         
         # Subscribe to point cloud topic
         self.subscriber = rospy.Subscriber(
@@ -131,79 +142,85 @@ class PointCloudRecorder:
         return points[mask]
     
     def callback(self, msg):
-        try:
-            print("PointCloud callback ...");
-            rospy.loginfo("PointCloud received")
-            points = np.frombuffer(msg.data, dtype=np.float32)
-            rospy.loginfo(f"Received points: {len(points)}")
-            points = points.reshape(-1, 8)  # x,y,z,rgb
-            
-            filtered_points = self.filter_points(points)
-            
-            cloud = pcl.PointCloud()
-            cloud.from_array(filtered_points[:, :3].astype(np.float32))
-
-            voxel_filter = cloud.make_voxel_grid_filter()
-            voxel_filter.set_leaf_size(self.voxel_size, self.voxel_size, self.voxel_size)
-            filtered_cloud = voxel_filter.filter()
-
-            voxel_points = np.zeros((filtered_cloud.size, 8), dtype=np.float32)
-            voxel_points[:, :3] = np.array(filtered_cloud.to_array())
-
-            for i, point in enumerate(voxel_points):
-                distances = np.sum((filtered_points[:, :3] - point[:3])**2, axis=1)
-                closest_idx = np.argmin(distances)
-                voxel_points[i, 3:] = filtered_points[closest_idx, 3:]
-            
-            filtered_msg = PointCloud2()
-            filtered_msg.header = msg.header
-            filtered_msg.height = 1
-            filtered_msg.width = len(voxel_points)
-            filtered_msg.fields = msg.fields
-            filtered_msg.point_step = msg.point_step
-            filtered_msg.data = voxel_points.tobytes()
-            filtered_msg.is_bigendian = msg.is_bigendian
-            filtered_msg.is_dense = msg.is_dense
-            
-            self.bag.write('/D435_head_camera/depth/color/points', filtered_msg)
-            rospy.loginfo("PointCloud written to bag")
-
-        except Exception as e:
-            rospy.logwarn(f"Error processing point cloud: {str(e)}")
-
+        """Push incoming point cloud messages to the processing queue."""
+        self.frame_count += 1
+        if self.frame_count % self.skip_frames == 0:
+            rospy.loginfo(f"Enqueuing frame {self.frame_count} for processing...")
+            self.queue.put(msg)
     
-    def start_recording(self, rate):
-        """
-        Start recording point cloud data.
-        
-        Args:
-            rate (int): Recording rate in Hz
-        """
-        print("Recording point cloud data...")
-        try:
-            self.rate = rospy.Rate(rate)
-            while not rospy.is_shutdown():
-                self.rate.sleep()
-        except KeyboardInterrupt:
-            print("\nStopping recording...")
-        finally:
-            self.stop_recording()
+    def process_queue(self):
+        """Threaded processing of point cloud messages."""
+        while not rospy.is_shutdown():
+            msg = self.queue.get()
+            if msg is None:
+                break
+            
+            try:
+                start_time = time.time()
+
+                # Convert PointCloud2 data to NumPy
+                points = np.frombuffer(msg.data, dtype=np.float32).reshape(-1, 8)  # x, y, z, rgb
+                
+                # Filter by range
+                mask = (self.min_range < points[:, 2]) & (points[:, 2] < self.max_range)
+                points = points[mask]
+
+                # Apply voxel grid filtering
+                cloud = pcl.PointCloud()
+                cloud.from_array(points[:, :3].astype(np.float32))
+
+                voxel_filter = cloud.make_voxel_grid_filter()
+                voxel_filter.set_leaf_size(self.voxel_size, self.voxel_size, self.voxel_size)
+                filtered_cloud = voxel_filter.filter()
+
+                # Define the fields (x, y, z, rgb)
+                fields = [
+                    PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
+                    PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
+                    PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
+                    PointField(name='rgb', offset=16, datatype=PointField.FLOAT32, count=1)
+                ]
+
+                # Create PointCloud2 message for filtered cloud
+                filtered_msg = PointCloud2()
+                filtered_msg.header = msg.header
+                filtered_msg.height = 1
+                filtered_msg.width = filtered_cloud.size
+                filtered_msg.fields = fields
+                filtered_msg.is_bigendian = False
+                filtered_msg.point_step = 32  # 4 bytes per field (x, y, z, rgb)
+                filtered_msg.row_step = filtered_cloud.size * filtered_msg.point_step
+                filtered_msg.data = filtered_cloud.to_array().astype(np.float32).tobytes()
+
+
+                # Save to bag
+                self.bag.write('/D435_head_camera/depth/color/points', filtered_msg)
+
+                rospy.loginfo(f"Processed frame {self.frame_count} in {time.time() - start_time:.2f}s")
+
+            except Exception as e:
+                rospy.logwarn(f"Error processing point cloud: {str(e)}")
+
     
     def stop_recording(self):
-        """Close the bag file and clean up."""
-        self.bag.close()
-        print("Recording stopped. Bag file saved.")
+        """Stop processing and close the bag file."""
+        self.queue.put(None)  # Signal the thread to stop
+        self.worker_thread.join()  # Ensure all processing is done
+        if self.bag:  # Ensure the bag is open before closing
+            self.bag.close()
+            print("Recording stopped. Bag file saved.")
+
 
 if __name__ == '__main__':
     try:
-        # Create recorder with optimized settings
         recorder = PointCloudRecorder(
-            '/home/wang/forest_ws/src/centauro_horizon/data',
+            save_path='/home/wang/forest_ws/src/centauro_horizon/data',
             compression='lz4',
-            voxel_size=0.01,
+            voxel_size=0.05,   # Coarser downsampling
             min_range=0.5,
-            max_range=4.0
+            max_range=4.0,
+            skip_frames=5      # Process every 5th frame
         )
-        recorder.start_recording(rate=30)
+        rospy.spin()
     except rospy.ROSInterruptException:
         pass
