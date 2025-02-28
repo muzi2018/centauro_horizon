@@ -27,85 +27,6 @@
 
 bool start_nav_bool = false;
 
-// Global variables for keyboard control
-bool keys_pressed[256] = {false};
-bool keyboard_control_active = true;
-
-// Store terminal settings globally
-struct termios oldt;
-struct termios newt;  // Declare both structures globally
-
-void reset_terminal_mode(void) {
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-}
-
-char getch(void) {
-    char ch;
-    
-    // Modify terminal settings for non-blocking input
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-    
-    // Read character
-    ch = getchar();
-    
-    // Restore original settings
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-    return ch;
-}
-
-
-void keyboardControlThread(void* arg) {
-    char c;
-    
-    // Print control instructions
-    ROS_INFO_STREAM("\nKeyboard Controls:");
-    ROS_INFO_STREAM("W/S: Forward/Backward");
-    ROS_INFO_STREAM("A/D: Left/Right");
-    ROS_INFO_STREAM("Q/E: Rotate Left/Right");
-    ROS_INFO_STREAM("X: Exit\n");
-
-    while (ros::ok()) {
-        // Read keyboard input without blocking
-        if (read(STDIN_FILENO, &c, 1) > 0) {
-            switch(c) {
-                case 'w':
-                    keys_pressed['w'] = true;
-                    break;
-                case 's':
-                    keys_pressed['s'] = true;
-                    break;
-                case 'a':
-                    keys_pressed['a'] = true;
-                    break;
-                case 'd':
-                    keys_pressed['d'] = true;
-                    break;
-                case 'q':
-                    keys_pressed['q'] = true;
-                    break;
-                case 'e':
-                    keys_pressed['e'] = true;
-                    break;
-                case '\n':  // Handle Enter key
-                    break;
-                default:
-                    keys_pressed[c] = true;
-            }
-        }
-        
-        // Reset pressed keys
-        usleep(50000);  // 50ms delay
-        
-        for(int i = 0; i < 256; ++i) {
-            keys_pressed[i] = false;
-        }
-    }
-}
-
-
-
 int main(int argc, char **argv)
 {
 
@@ -159,14 +80,11 @@ int main(int argc, char **argv)
     auto car_cartesian = std::dynamic_pointer_cast<XBot::Cartesian::CartesianTask>(car_task);
     Eigen::Vector6d E;
 
-    // Create keyboard control thread
-    std::thread keyboard_thread(keyboardControlThread, nullptr);
-    keyboard_thread.detach();
-
 
     while (ros::ok())
     {
-        if ( keys_pressed['w'] == true ){
+        std::cout << "ros::ok ---" << std::endl;
+        if ( 0 ){
             E[0] = K_x * (x_e - 0);  
             E[1] = K_y * (y_e - 0);  
             E[2] = 0;
