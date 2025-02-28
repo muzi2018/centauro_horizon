@@ -35,7 +35,6 @@
 
   <node pkg="centauro_horizon" name="centauro_command_key" type="centauro_command_key_node" output="screen" launch-prefix="gnome-terminal --"/>
 
-  <node pkg="centauro_horizon" name="centauro_command_key" type="centauro_command_key_node" output="screen" launch-prefix="gnome-terminal --"/>
 
 
   <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_pelvis" 
