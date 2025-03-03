@@ -1,5 +1,7 @@
 ﻿<launch>
-
+  <arg name="model_name" default="centauro"/>  <!-- kyon -->
+  <arg name="world_frame" default="map"/>
+  <arg name="base_frame" default="world"/>
   <!-- Load the URDF/SRDF into the ROS Parameter Server -->
     <!-- visualization config -->
   <arg name="rviz"               default="true" />
@@ -19,6 +21,11 @@
 
   <group if = "$(arg gazebo)">
       <include file="$(find centauro_gazebo)/launch/centauro_perception.launch" pass_all_args="true"/>
+      <node pkg="centauro_horizon" type="sim_odom_connect" name="sim_odom_connect">
+          <param name="model_name" value="$(arg model_name)"/>
+          <param name="world_frame" value="$(arg world_frame)"/>
+          <param name="base_frame" value="$(arg base_frame)"/>
+      </node>
   </group>
   <!-- rviz -->
 
