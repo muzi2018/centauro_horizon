@@ -1,9 +1,11 @@
 ﻿<launch>
-
+  <arg name="model_name" default="centauro"/>  <!-- kyon -->
+  <arg name="world_frame" default="map"/>
+  <arg name="base_frame" default="pelvis"/>
   <!-- Load the URDF/SRDF into the ROS Parameter Server -->
     <!-- visualization config -->
   <arg name="rviz"               default="true" />
-  <arg name="gazebo"               default="true" />
+  <arg name="gazebo_param"               default="false" />
   <arg name="xbot2_config" default="$(find centauro_config)/centauro_basic.yaml"/>
   <arg name="xbot" default="true" />
 
@@ -17,13 +19,19 @@
         args="--hw sim --simtime --config $(arg xbot2_config) --"/>
   </group>
 
-  <group if = "$(arg gazebo)">
-      <include file="$(find centauro_gazebo)/launch/centauro_perception.launch" pass_all_args="true"/>
+  <include file="$(find centauro_gazebo)/launch/centauro_perception.launch" pass_all_args="true"/>
+
+  <group if = "$(arg gazebo_param)">
+      <node pkg="centauro_horizon" type="sim_odom_connect" name="sim_odom_connect">
+          <param name="model_name" value="$(arg model_name)"/>
+          <param name="world_frame" value="$(arg world_frame)"/>
+          <param name="base_frame" value="$(arg base_frame)"/>
+      </node>
   </group>
   <!-- rviz -->
 
   <group if="$(arg rviz)">
-      <node pkg="rviz" type="rviz" name="rviz" args="-d $(find centauro_horizon)/rviz/centauro.rviz"/>
+      <node pkg="rviz" type="rviz" name="rviz" args="-d $(find centauro_horizon)/rviz/centauro_localization.rviz"/>
   </group>
 
   <param name="problem_description_wheel"
@@ -31,13 +39,13 @@
 
 
     <!--Test node-->
-  <node pkg="centauro_horizon" name="centauro_nav_wheel" type="centauro_nav_wheel_node" output="screen"/>
+  <!-- <node pkg="centauro_horizon" name="centauro_nav_wheel" type="centauro_nav_wheel_node" output="screen"/> -->
 
   <node pkg="centauro_horizon" name="centauro_command_key" type="centauro_command_key_node" output="screen" launch-prefix="gnome-terminal --"/>
 
 
 
-  <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_pelvis" 
-        args="0 0 0.82 0 0 0 1 world pelvis" />
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_pelvis" 
+        args="0 0 0.82 0 0 0 1 world pelvis" /> -->
 </launch>
 
