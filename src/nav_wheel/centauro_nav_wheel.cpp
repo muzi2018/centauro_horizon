@@ -123,7 +123,7 @@ int main(int argc, char **argv)
         
         try {
             // Look up the transform (replace "world" with the actual frame you want)
-            geometry_msgs::TransformStamped transform_stamped = tf_buffer.lookupTransform("world", "pelvis", ros::Time(0), ros::Duration(1.0));
+            geometry_msgs::TransformStamped transform_stamped = tf_buffer.lookupTransform("map", "pelvis", ros::Time(0), ros::Duration(1.0));
             
             // Convert to tf2::Transform
             tf2::fromMsg(transform_stamped.transform, current_transform);
@@ -181,6 +181,7 @@ int main(int argc, char **argv)
         // Check if the transform has changed significantly
         if (first_publish || hasTransformChanged(current_transform, last_published_transform, position_threshold, rotation_threshold)) {
             // Publish transform only if the change exceeds the thresholds
+            // std::cout << "transform ..." << std::endl;
             rspub.publishTransforms(ros::Time::now(), "");
 
             // Update last published transform and time
