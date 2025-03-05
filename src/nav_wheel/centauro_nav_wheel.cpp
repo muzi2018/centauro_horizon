@@ -182,7 +182,7 @@ int main(int argc, char **argv)
         if (first_publish || hasTransformChanged(current_transform, last_published_transform, position_threshold, rotation_threshold)) {
             // Publish transform only if the change exceeds the thresholds
             // std::cout << "transform ..." << std::endl;
-            rspub.publishTransforms(ros::Time::now(), "");
+            rspub.publishTransforms(ros::Time::now() + ros::Duration(0.001), "");
 
             // Update last published transform and time
             last_published_transform = current_transform;

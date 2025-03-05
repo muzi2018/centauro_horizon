@@ -39,7 +39,7 @@
 
 
     <!--Test node-->
-  <node pkg="centauro_horizon" name="centauro_nav_wheel" type="centauro_nav_wheel_node" output="screen"/>
+  <!-- <node pkg="centauro_horizon" name="centauro_nav_wheel" type="centauro_nav_wheel_node" output="screen"/> -->
 
   <node pkg="centauro_horizon" name="centauro_command_key" type="centauro_command_key_node" output="screen" launch-prefix="gnome-terminal --"/>
 

@@ -259,8 +259,8 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          world:
+        world:
+          map:
             pelvis:
               D435i_camera_bottom_screw_frame:
                 D435i_camera_link:
@@ -465,7 +465,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.20000000298023224
+      Size (m): 0.05000000074505806
       Style: Flat Squares
       Topic: /aligned_points
       Unreliable: false
@@ -1018,7 +1018,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 55.377193450927734
+      Distance: 53.7938117980957
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1026,15 +1026,15 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -20.42506980895996
-        Y: 7.662644863128662
-        Z: -31.09400177001953
+        X: -21.12491226196289
+        Y: 9.771332740783691
+        Z: -29.929454803466797
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8847967982292175
+      Pitch: 0.9047967791557312
       Target Frame: <Fixed Frame>
       Yaw: 5.889828205108643
     Saved: ~
