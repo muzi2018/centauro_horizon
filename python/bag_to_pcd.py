@@ -6,9 +6,9 @@ import open3d as o3d
 import numpy as np
 
 # Input ROS bag file
-bag_file = "/home/wang/pointcloud/2025-03-04-17-12-02.bag"
+bag_file = "/home/wang/forest_ws/src/centauro_horizon/data/2025-03-04-19-50-17.bag"
 topic_name = "/velodyne_points"
-output_pcd = "output_lidar.pcd"
+output_pcd = "../data/output_lidar.pcd"
 
 bag = rosbag.Bag(bag_file, "r")
 

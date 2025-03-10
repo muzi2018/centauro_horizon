@@ -26,7 +26,7 @@ from ultralytics import YOLO  # Import YOLO model from the ultralytics package
 bridge = CvBridge()
 
 # Load YOLO model
-model = YOLO('yolo11n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
+model = YOLO('yolo12n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
 
 def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
     # Extract camera intrinsic parameters
