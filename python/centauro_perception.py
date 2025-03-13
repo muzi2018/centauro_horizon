@@ -58,6 +58,24 @@ class ObjectTracker:
         return last_pos
 
 
+def compute_mask_center(mask_points):
+    """Calculate the center of the mask"""
+    if len(mask_points) == 0:
+        return None  # No mask points, return None
+
+    # Flatten the mask points
+    mask_points = np.array(mask_points, dtype=np.int32)
+
+    # Calculate the moments of the mask
+    moments = cv2.moments(mask_points)
+    if moments['m00'] == 0:  # Avoid division by zero
+        return None
+
+    # Calculate the center of mass (centroid)
+    center_x = int(moments['m10'] / moments['m00'])
+    center_y = int(moments['m01'] / moments['m00'])
+    
+    return center_x, center_y
 
 
 def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
@@ -188,6 +206,23 @@ def image_callback(msg):
         for i, mask in enumerate(results_sam[j][0].masks.xy):  # Loop through all detected masks
             mask = np.array(mask, np.int32)  # Convert mask to integer array
             cv2.fillPoly(mask_img, [mask], (0, 255, 0))  # Fill the segmented area with green
+
+
+
+    # Process masks for segmentation
+    for i, mask in enumerate(results_sam):
+        mask_points = results_sam[i][0].masks.xy  # Get mask points for the object
+        
+        # Calculate the center of the mask
+        center = compute_mask_center(mask_points)
+        if center is not None:
+            mask_center_x, mask_center_y = center
+            print(f"Center of mask: ({mask_center_x}, {mask_center_y})")
+            # Visualize the center on the frame
+            cv2.circle(frame, (mask_center_x, mask_center_y), 5, (0, 255, 0), -1)
+
+
+
 
     # Blend the segmentation mask with the original frame
     blended = cv2.addWeighted(frame, 0.7, mask_img, 0.3, 0)
