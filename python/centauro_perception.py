@@ -118,12 +118,10 @@ def image_callback(msg):
 
 
 
-    
-    
-    cnt = 1
+    cnt = 0
     # Run YOLO object detection on the frame
-    results = model_det(frame, verbose=False)  # YOLO detection        
-    detections = results[0]  # Get the first (and usually only) result from the list
+    results_det = model_det(frame, verbose=False)  # YOLO detection        
+    detections = results_det[0]  # Get the first (and usually only) result from the list
         
     # Extract bounding boxes, class names, and confidence scores
     boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
@@ -147,7 +145,7 @@ def image_callback(msg):
     intrinsic_matrix = np.array([[focal_length_x, 0, center_x],  # Replace with actual values
                                  [0, focal_length_y, center_y],
                                  [0, 0, 1]])
-
+    results_sam = []
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
@@ -178,21 +176,18 @@ def image_callback(msg):
         cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
+        results_sam.append(model_sam(frame, bboxes=[x1, y1, x2, y2]))  # Append the result
 
+        
         cnt = cnt + 1
         
-    print("\n\n")  # Prints two empty lines
-    # Ensure OpenCV displays the image
-    # cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
-    # cv2.imshow("YOLO Object Detection", frame)
-    # cv2.waitKey(1)  # Must be called to refresh the window
-
-    # Display model information (optional) 
-    results = model_sam(frame, bboxes=[1032.57177734375, 527.031494140625, 1234.779296875, 719.81689453125])  # Run segmentation
+    print("\n\n")  
+    
     mask_img = np.zeros_like(frame)  # Create an empty mask image
-    for i, mask in enumerate(results[0].masks.xy):  # Loop through all detected masks
-        mask = np.array(mask, np.int32)  # Convert mask to integer array
-        cv2.fillPoly(mask_img, [mask], (0, 255, 0))  # Fill the segmented area with green
+    for j in range(cnt):
+        for i, mask in enumerate(results_sam[j][0].masks.xy):  # Loop through all detected masks
+            mask = np.array(mask, np.int32)  # Convert mask to integer array
+            cv2.fillPoly(mask_img, [mask], (0, 255, 0))  # Fill the segmented area with green
 
     # Blend the segmentation mask with the original frame
     blended = cv2.addWeighted(frame, 0.7, mask_img, 0.3, 0)
