@@ -21,6 +21,7 @@ from cv_bridge import CvBridge
 import cv2
 import matplotlib.pyplot as plt
 from ultralytics import YOLO  # Import YOLO model from the ultralytics package
+from ultralytics import solutions
 
 # exit()
 bridge = CvBridge()
@@ -65,7 +66,7 @@ def get_depth_at(x, y):
         return depth_frame[y, x] * 0.001  # Convert from mm to meters
     return None
         
-        
+
         
 def image_callback(msg):
     try:
@@ -76,69 +77,79 @@ def image_callback(msg):
         print(f"Error converting image: {e}")
         return
 
-    cnt = 1
-    # Run YOLO object detection on the frame
-    results = model(frame, verbose=False)  # YOLO detection        
-    detections = results[0]  # Get the first (and usually only) result from the list
-        
-    # Extract bounding boxes, class names, and confidence scores
-    boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
-    mask = detections.masks
-    if mask == None:
-        print("mask is none ...")
 
-    # # names = detections.names  # Dictionary mapping class IDs to class names
-    probs = detections.probs  # Confidence scores for each detection
+    distance_calc = solutions.DistanceCalculation(
+        model="yolo11n.pt",  # Ensure this path is correct
+        show=True
+    )
+    # frame = cv2.imread("frame.jpg")
+    processed_frame = distance_calc.calculate(frame)
+    cv2.imshow("Distance Calculation", processed_frame)
+    cv2.waitKey(0)
+
+    # cnt = 1
+    # # Run YOLO object detection on the frame
+    # results = model(frame, verbose=False)  # YOLO detection        
+    # detections = results[0]  # Get the first (and usually only) result from the list
+        
+    # # Extract bounding boxes, class names, and confidence scores
+    # boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
+    # mask = detections.masks
+    # if mask == None:
+    #     print("mask is none ...")
+
+    # # # names = detections.names  # Dictionary mapping class IDs to class names
+    # probs = detections.probs  # Confidence scores for each detection
     
-    if boxes is None:
-        print('boxes is None')
+    # if boxes is None:
+    #     print('boxes is None')
         
-    # if probs is None:
-    #     print('probs is None')
+    # # if probs is None:
+    # #     print('probs is None')
 
-    focal_length_x = 924.2759399414062
-    focal_length_y = 924.2759399414062
+    # focal_length_x = 924.2759399414062
+    # focal_length_y = 924.2759399414062
 
-    center_x = 640.0
-    center_y = 360.0
+    # center_x = 640.0
+    # center_y = 360.0
 
-    intrinsic_matrix = np.array([[focal_length_x, 0, center_x],  # Replace with actual values
-                                 [0, focal_length_y, center_y],
-                                 [0, 0, 1]])
+    # intrinsic_matrix = np.array([[focal_length_x, 0, center_x],  # Replace with actual values
+    #                              [0, focal_length_y, center_y],
+    #                              [0, 0, 1]])
 
-    for box in boxes:
-        x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-        depth = get_depth_at(cx, cy)  # Get depth value
+    # for box in boxes:
+    #     x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
+    #     cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+    #     depth = get_depth_at(cx, cy)  # Get depth value
         
-        #get the 3d position in robot
-        X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
+    #     #get the 3d position in robot
+    #     X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
         
     
         
-        conf = box.conf[0].item()
-        cls = int(box.cls[0].item())
-        class_name = model.names[cls]
-        print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
-        print(f"Object {cnt} at ({cx}, {cy}) has depth: {depth} meters")
-        print(f"3D position of object {cnt}: ({X:.2f}, {Y:.2f}, {Z:.2f}) meters")
+    #     conf = box.conf[0].item()
+    #     cls = int(box.cls[0].item())
+    #     class_name = model.names[cls]
+    #     print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
+    #     print(f"Object {cnt} at ({cx}, {cy}) has depth: {depth} meters")
+    #     print(f"3D position of object {cnt}: ({X:.2f}, {Y:.2f}, {Z:.2f}) meters")
 
-        # print("Box:", box.xyxy.tolist())  # Check structure
-        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        cv2.putText(frame, f"p ({X}, {Y}, {Z})", (int(cx), int(cy)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    #     # print("Box:", box.xyxy.tolist())  # Check structure
+    #     cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+    #     cv2.putText(frame, f"p ({X}, {Y}, {Z})", (int(cx), int(cy)),
+    #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-        cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    #     cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
+    #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
 
-        cnt = cnt + 1
+    #     cnt = cnt + 1
         
-    print("\n\n")  # Prints two empty lines
-    # Ensure OpenCV displays the image
-    cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
-    cv2.imshow("YOLO Object Detection", frame)
-    cv2.waitKey(1)  # Must be called to refresh the window
+    # print("\n\n")  # Prints two empty lines
+    # # Ensure OpenCV displays the image
+    # cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
+    # cv2.imshow("YOLO Object Detection", frame)
+    # cv2.waitKey(1)  # Must be called to refresh the window
 
 
 
