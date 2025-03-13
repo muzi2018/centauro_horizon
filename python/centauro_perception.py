@@ -22,11 +22,42 @@ import cv2
 import matplotlib.pyplot as plt
 from ultralytics import YOLO  # Import YOLO model from the ultralytics package
 
-# exit()
-bridge = CvBridge()
 
-# Load YOLO model
-model = YOLO('yolo12n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
+class ObjectTracker:
+    def __init__(self):
+        self.tracked_objects = {}  # Store object history
+        self.max_tracking_loss = 5  # Maximum frames without detection
+        self.last_detection_time = {}  # Track when each object was last seen
+        
+    def update_object_position(self, obj_id, position, confidence):
+        """Update an object's position and confidence"""
+        self.tracked_objects[obj_id] = {
+            'position': position,
+            'confidence': confidence,
+            'last_seen': rospy.get_rostime(),
+            'tracking_count': self.tracked_objects[obj_id]['tracking_count'] + 1 if obj_id in self.tracked_objects else 1
+        }
+        
+    def predict_position(self, obj_id):
+        """Predict position based on movement history"""
+        if obj_id not in self.tracked_objects:
+            return None
+            
+        obj = self.tracked_objects[obj_id]
+        if obj['tracking_count'] < 2:
+            return None
+            
+        # Simple linear prediction based on last two positions
+        last_pos = obj['position']
+        if obj_id in self.last_detection_time:
+            time_diff = (rospy.get_rostime() - self.last_detection_time[obj_id]).to_sec()
+            # Predict next position based on velocity
+            return np.array(last_pos) + np.array([0.1, 0.1, 0.1]) * time_diff
+            
+        return last_pos
+
+
+
 
 def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
     # Extract camera intrinsic parameters
@@ -65,9 +96,15 @@ def get_depth_at(x, y):
         return depth_frame[y, x] * 0.001  # Convert from mm to meters
     return None
         
-        
+tracker = ObjectTracker()
+# exit()
+bridge = CvBridge()
+# Load YOLO model
+model = YOLO('yolo12n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
+
         
 def image_callback(msg):
+    global tracker 
     try:
         frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         frame = frame.copy() 
@@ -88,9 +125,10 @@ def image_callback(msg):
     
     if boxes is None:
         print('boxes is None')
-        
-    # if probs is None:
-    #     print('probs is None')
+        # Handle lost detection for all tracked objects
+        handle_lost_detections()
+        return
+
 
     focal_length_x = 924.2759399414062
     focal_length_y = 924.2759399414062
@@ -119,9 +157,14 @@ def image_callback(msg):
         print(f"Object {cnt} at ({cx}, {cy}) has depth: {depth} meters")
         print(f"3D position of object {cnt}: ({X:.2f}, {Y:.2f}, {Z:.2f}) meters")
 
+        # Update tracker with new detection
+        obj_id = f"{class_name}_{int(time.time())}"
+        tracker.update_object_position(obj_id, [X, Y, Z], conf)
+
+
         # print("Box:", box.xyxy.tolist())  # Check structure
         cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        cv2.putText(frame, f"p ({X}, {Y}, {Z})", (int(cx), int(cy)),
+        cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(cx), int(cy)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
@@ -136,9 +179,45 @@ def image_callback(msg):
     cv2.imshow("YOLO Object Detection", frame)
     cv2.waitKey(1)  # Must be called to refresh the window
 
+def handle_lost_detections():
+    """Handle cases where objects are temporarily lost"""
+    global tracker
+    current_time = rospy.get_rostime()
+    
+    # Check each tracked object
+    for obj_id in list(tracker.tracked_objects.keys()):
+        obj = tracker.tracked_objects[obj_id]
+        time_since_last_seen = (current_time - obj['last_seen']).to_sec()
+        
+        if time_since_last_seen > tracker.max_tracking_loss:
+            # Object lost for too long, remove from tracking
+            del tracker.tracked_objects[obj_id]
+            print(f"Removed lost object: {obj_id}")
+        else:
+            # Predict position for temporarily lost object
+            predicted_pos = tracker.predict_position(obj_id)
+            if predicted_pos is not None:
+                # Update visualization with predicted position
+                visualize_predicted_position(predicted_pos, obj_id)
 
-
-
+def visualize_predicted_position(position, obj_id):
+    """Visualize predicted object position"""
+    global frame
+    if frame is None:
+        return
+        
+    # Project 3D position back to 2D for visualization
+    focal_length_x = 924.2759399414062
+    focal_length_y = 924.2759399414062
+    center_x = 640.0
+    center_y = 360.0
+    x = int(position[0] * focal_length_x / position[2] + center_x)
+    y = int(position[1] * focal_length_y / position[2] + center_y)
+    
+    # Draw predicted position marker
+    cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)
+    cv2.putText(frame, f"Pred {obj_id}", (x, y - 10),
+               cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
 
 def imu_callback(msg: Imu):
