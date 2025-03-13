@@ -117,8 +117,8 @@ def image_callback(msg):
     # Load a model
 
 
-    # Display model information (optional)
-    results = model(frame, bboxes=[439, 437, 524, 709])  # Run segmentation
+    # Display model information (optional) 
+    results = model(frame, bboxes=[1032.57177734375, 527.031494140625, 1234.779296875, 719.81689453125])  # Run segmentation
     mask_img = np.zeros_like(frame)  # Create an empty mask image
     for i, mask in enumerate(results[0].masks.xy):  # Loop through all detected masks
         mask = np.array(mask, np.int32)  # Convert mask to integer array
