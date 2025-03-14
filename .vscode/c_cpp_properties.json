@@ -7,6 +7,7 @@
         "/home/wang/forest_ws/install/include/**",
         "/home/wang/forest_ws/install/share",
         "/opt/ros/noetic/**",
+        "/opt/ros/noetic/share/rtabmap_ros"
       ],
       "compilerPath": "/usr/bin/gcc",
       "cStandard": "${default}",

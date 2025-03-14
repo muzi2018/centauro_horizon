@@ -24,49 +24,14 @@ from ultralytics import YOLO  # Import YOLO model from the ultralytics package
 from ultralytics import SAM
 
 
-class ObjectTracker:
-    def __init__(self):
-        self.tracked_objects = {}  # Store object history
-        self.max_tracking_loss = 5  # Maximum frames without detection
-        self.last_detection_time = {}  # Track when each object was last seen
-        
-    def update_object_position(self, obj_id, position, confidence):
-        """Update an object's position and confidence"""
-        self.tracked_objects[obj_id] = {
-            'position': position,
-            'confidence': confidence,
-            'last_seen': rospy.get_rostime(),
-            'tracking_count': self.tracked_objects[obj_id]['tracking_count'] + 1 if obj_id in self.tracked_objects else 1
-        }
-        
-    def predict_position(self, obj_id):
-        """Predict position based on movement history"""
-        if obj_id not in self.tracked_objects:
-            return None
-            
-        obj = self.tracked_objects[obj_id]
-        if obj['tracking_count'] < 2:
-            return None
-            
-        # Simple linear prediction based on last two positions
-        last_pos = obj['position']
-        if obj_id in self.last_detection_time:
-            time_diff = (rospy.get_rostime() - self.last_detection_time[obj_id]).to_sec()
-            # Predict next position based on velocity
-            return np.array(last_pos) + np.array([0.1, 0.1, 0.1]) * time_diff
-            
-        return last_pos
-
 
 def compute_mask_center(mask_points):
     """Calculate the center of the mask"""
     if len(mask_points) == 0:
-        return None  # No mask points, return None
+        return None  
 
-    # Flatten the mask points
     mask_points = np.array(mask_points, dtype=np.int32)
 
-    # Calculate the moments of the mask
     moments = cv2.moments(mask_points)
     if moments['m00'] == 0:  # Avoid division by zero
         return None
@@ -115,15 +80,12 @@ def get_depth_at(x, y):
         return depth_frame[y, x] * 0.001  # Convert from mm to meters
     return None
         
-tracker = ObjectTracker()
-# exit()
 bridge = CvBridge()
 # Load YOLO model
 model_det = YOLO('yolo12n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
 model_sam = SAM("sam_b.pt")
         
 def image_callback(msg):
-    global tracker 
     try:
         frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         frame = frame.copy() 
@@ -133,9 +95,6 @@ def image_callback(msg):
         return
 
     # Load a model
-
-
-
     cnt = 0
     # Run YOLO object detection on the frame
     results_det = model_det(frame, verbose=False)  # YOLO detection        
@@ -144,13 +103,12 @@ def image_callback(msg):
     # Extract bounding boxes, class names, and confidence scores
     boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
     masks = detections.masks  # Bounding boxes in format (x1, y1, x2, y2)
-    # # names = detections.names  # Dictionary mapping class IDs to class names
     probs = detections.probs  # Confidence scores for each detection
     
     if boxes is None:
         print('boxes is None')
         # Handle lost detection for all tracked objects
-        handle_lost_detections()
+        # handle_lost_detections()
         return
 
 
@@ -180,12 +138,7 @@ def image_callback(msg):
         print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
         print(f"Object {cnt} at ({cx}, {cy}) has depth: {depth} meters")
         print(f"3D position of object {cnt}: ({X:.2f}, {Y:.2f}, {Z:.2f}) meters")
-
-        # Update tracker with new detection
-        obj_id = f"{class_name}_{int(time.time())}"
-        tracker.update_object_position(obj_id, [X, Y, Z], conf)
-
-
+        
         # print("Box:", box.xyxy.tolist())  # Check structure
         cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
         cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(cx), int(cy)),
@@ -195,38 +148,31 @@ def image_callback(msg):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         results_sam.append(model_sam(frame, bboxes=[x1, y1, x2, y2]))  # Append the result
-
-        
-        cnt = cnt + 1
-        
+        cnt = cnt + 1        
     print("\n\n")  
     
     mask_img = np.zeros_like(frame)  # Create an empty mask image
     for j in range(cnt):
+        box = boxes[j]
+        x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
+        bbox_center = np.array([(x1 + x2) / 2, (y1 + y2) / 2])
         for i, mask in enumerate(results_sam[j][0].masks.xy):  # Loop through all detected masks
             mask = np.array(mask, np.int32)  # Convert mask to integer array
             cv2.fillPoly(mask_img, [mask], (0, 255, 0))  # Fill the segmented area with green
-
-
-
-    # Process masks for segmentation
-    for i, mask in enumerate(results_sam):
-        mask_points = results_sam[i][0].masks.xy  # Get mask points for the object
-        
-        # Calculate the center of the mask
-        center = compute_mask_center(mask_points)
-        if center is not None:
-            mask_center_x, mask_center_y = center
-            print(f"Center of mask: ({mask_center_x}, {mask_center_y})")
+            # Compute the closest point on the mask to bbox_center
+            mask_points = mask.reshape((-1, 2))
+            distances = np.linalg.norm(mask_points - bbox_center, axis=1)
+            closest_index = np.argmin(distances)
+            closest_point = tuple(mask_points[closest_index])  # Nearest mask point
+            center_x, center_y = closest_point
+            print(f"Center of mask: ({center_x}, {center_y})")
             # Visualize the center on the frame
-            cv2.circle(frame, (mask_center_x, mask_center_y), 5, (0, 255, 0), -1)
-
+            cv2.circle(frame, (center_x, center_y), 5, (0, 255, 0), -1)
 
 
 
     # Blend the segmentation mask with the original frame
     blended = cv2.addWeighted(frame, 0.7, mask_img, 0.3, 0)
-
     # Display the result
     cv2.imshow("Segmented Objects", blended)
     cv2.waitKey(1)
