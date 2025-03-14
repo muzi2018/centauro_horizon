@@ -141,8 +141,8 @@ def image_callback(msg):
         
         # print("Box:", box.xyxy.tolist())  # Check structure
         cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(cx), int(cy)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        # cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(cx), int(cy)),
+        #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
@@ -166,9 +166,15 @@ def image_callback(msg):
             closest_point = tuple(mask_points[closest_index])  # Nearest mask point
             center_x, center_y = closest_point
             print(f"Center of mask: ({center_x}, {center_y})")
+            
+            depth = get_depth_at(center_x, center_y)  # Get depth value
+            #get the 3d position in robot
+            X, Y, Z = pixel_to_3d(center_x, center_y, depth, intrinsic_matrix)  # Convert to 3D
+            
             # Visualize the center on the frame
             cv2.circle(frame, (center_x, center_y), 5, (0, 255, 0), -1)
-
+            cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(center_x), int(center_y)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
 
     # Blend the segmentation mask with the original frame
