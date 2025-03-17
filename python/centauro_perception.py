@@ -84,12 +84,16 @@ bridge = CvBridge()
 # Load YOLO model
 model_det = YOLO('yolo12n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
 model_sam = SAM("sam_b.pt")
-        
+
+obj_dict = {}
+
+
 def image_callback(msg):
     try:
         frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         frame = frame.copy() 
-        print("Converted image successfully")
+        print("/n")
+        print("#####-----Converted image successfully-----#####")
     except Exception as e:
         print(f"Error converting image: {e}")
         return
@@ -122,61 +126,46 @@ def image_callback(msg):
                                  [0, focal_length_y, center_y],
                                  [0, 0, 1]])
     results_sam = []
+    mask_img = np.zeros_like(frame)  # Create an empty mask image
+
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-        depth = get_depth_at(cx, cy)  # Get depth value
-        
-        #get the 3d position in robot
-        X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
-        
-    
-        
         conf = box.conf[0].item()
         cls = int(box.cls[0].item())
         class_name = model_det.names[cls]
-        print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
-        print(f"Object {cnt} at ({cx}, {cy}) has depth: {depth} meters")
-        print(f"3D position of object {cnt}: ({X:.2f}, {Y:.2f}, {Z:.2f}) meters")
-        
+        # print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
+        # print(f"Object {cnt} at ({cx}, {cy}) has depth: {depth} meters")
         # print("Box:", box.xyxy.tolist())  # Check structure
         cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
         # cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(cx), int(cy)),
         #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
         cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
+        # print(f"3D position of object {cnt} {class_name}: ({X:.2f}, {Y:.2f}, {Z:.2f}) meters")
         results_sam.append(model_sam(frame, bboxes=[x1, y1, x2, y2]))  # Append the result
+
+        for i, mask in enumerate(results_sam[cnt][0].masks.xy):  # Loop through all detected masks
+        #     mask = np.array(mask, np.int32)  # Convert mask to integer array
+        #     # cv2.fillPoly(mask_img, [mask], (0, 255, 0))  # Fill the segmented area with green
+        #     # Compute the closest point on the mask to bbox_center
+        #     mask_points = mask.reshape((-1, 2))
+        #     distances = np.linalg.norm(mask_points - bbox_center, axis=1)
+        #     closest_index = np.argmin(distances)
+        #     closest_point = tuple(mask_points[closest_index])  # Nearest mask point
+        #     center_x, center_y = closest_point
+        #     # print(f"Center of mask: ({center_x}, {center_y})")
+            
+        #     depth = get_depth_at(center_x, center_y)  # Get depth value
+        #     #get the 3d position in robot
+        #     X, Y, Z = pixel_to_3d(center_x, center_y, depth, intrinsic_matrix)  # Convert to 3D
+        #         # Visualize the center on the frame
+                
+        # cv2.circle(frame, (center_x, center_y), 5, (0, 255, 0), -1)
+        # cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(center_x), int(center_y)),
+        #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            print("i = ", i)
         cnt = cnt + 1        
-    print("\n\n")  
     
-    mask_img = np.zeros_like(frame)  # Create an empty mask image
-    for j in range(cnt):
-        box = boxes[j]
-        x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
-        bbox_center = np.array([(x1 + x2) / 2, (y1 + y2) / 2])
-        for i, mask in enumerate(results_sam[j][0].masks.xy):  # Loop through all detected masks
-            mask = np.array(mask, np.int32)  # Convert mask to integer array
-            cv2.fillPoly(mask_img, [mask], (0, 255, 0))  # Fill the segmented area with green
-            # Compute the closest point on the mask to bbox_center
-            mask_points = mask.reshape((-1, 2))
-            distances = np.linalg.norm(mask_points - bbox_center, axis=1)
-            closest_index = np.argmin(distances)
-            closest_point = tuple(mask_points[closest_index])  # Nearest mask point
-            center_x, center_y = closest_point
-            print(f"Center of mask: ({center_x}, {center_y})")
-            
-            depth = get_depth_at(center_x, center_y)  # Get depth value
-            #get the 3d position in robot
-            X, Y, Z = pixel_to_3d(center_x, center_y, depth, intrinsic_matrix)  # Convert to 3D
-            
-            # Visualize the center on the frame
-            cv2.circle(frame, (center_x, center_y), 5, (0, 255, 0), -1)
-            cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(center_x), int(center_y)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-
     # Blend the segmentation mask with the original frame
     blended = cv2.addWeighted(frame, 0.7, mask_img, 0.3, 0)
     # Display the result
