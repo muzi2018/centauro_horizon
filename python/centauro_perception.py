@@ -87,7 +87,6 @@ def get_depth_at(x, y):
 bridge = CvBridge()
 # Load YOLO model
 model_det = YOLO('yolo12n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
-model_sam = SAM("sam_b.pt")
 
 obj_dict = {}
 
@@ -102,23 +101,16 @@ def image_callback(msg):
         print(f"Error converting image: {e}")
         return
 
-    # Load a model
     cnt = 0
-    # Run YOLO object detection on the frame
     results_det = model_det(frame, verbose=False)  # YOLO detection        
     detections = results_det[0]  # Get the first (and usually only) result from the list
         
-    # Extract bounding boxes, class names, and confidence scores
     boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
-    masks = detections.masks  # Bounding boxes in format (x1, y1, x2, y2)
     probs = detections.probs  # Confidence scores for each detection
     
     if boxes is None:
         print('boxes is None')
-        # Handle lost detection for all tracked objects
-        # handle_lost_detections()
         return
-
 
     focal_length_x = 924.2759399414062
     focal_length_y = 924.2759399414062
@@ -129,95 +121,28 @@ def image_callback(msg):
     intrinsic_matrix = np.array([[focal_length_x, 0, center_x],  # Replace with actual values
                                  [0, focal_length_y, center_y],
                                  [0, 0, 1]])
-    results_sam = []
-    mask_img = np.zeros_like(frame)  # Create an empty mask image
 
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
         conf = box.conf[0].item()
         cls = int(box.cls[0].item())
         class_name = model_det.names[cls]
-        # print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
-        # print(f"Object {cnt} at ({cx}, {cy}) has depth: {depth} meters")
-        # print("Box:", box.xyxy.tolist())  # Check structure
+        
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        depth = get_depth_at(cx, cy)  # Get depth value
+        X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
+        
+        print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
+        print(f"Object {cnt} at ({X}, {Y}) has depth: {Z} meters")
         cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        # cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(cx), int(cy)),
-        #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(cx), int(cy)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        # print(f"3D position of object {cnt} {class_name}: ({X:.2f}, {Y:.2f}, {Z:.2f}) meters")
-        results_sam.append(model_sam(frame, bboxes=[x1, y1, x2, y2]))  # Append the result
-
-        for i, mask in enumerate(results_sam[cnt][0].masks.xy):  # Loop through all detected masks
-        #     mask = np.array(mask, np.int32)  # Convert mask to integer array
-        #     # cv2.fillPoly(mask_img, [mask], (0, 255, 0))  # Fill the segmented area with green
-        #     # Compute the closest point on the mask to bbox_center
-        #     mask_points = mask.reshape((-1, 2))
-        #     distances = np.linalg.norm(mask_points - bbox_center, axis=1)
-        #     closest_index = np.argmin(distances)
-        #     closest_point = tuple(mask_points[closest_index])  # Nearest mask point
-        #     center_x, center_y = closest_point
-        #     # print(f"Center of mask: ({center_x}, {center_y})")
-            
-        #     depth = get_depth_at(center_x, center_y)  # Get depth value
-        #     #get the 3d position in robot
-        #     X, Y, Z = pixel_to_3d(center_x, center_y, depth, intrinsic_matrix)  # Convert to 3D
-        #         # Visualize the center on the frame
-                
-        # cv2.circle(frame, (center_x, center_y), 5, (0, 255, 0), -1)
-        # cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(center_x), int(center_y)),
-        #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            print("i = ", i)
-        cnt = cnt + 1        
-    
-    # Blend the segmentation mask with the original frame
-    blended = cv2.addWeighted(frame, 0.7, mask_img, 0.3, 0)
-    # Display the result
-    cv2.imshow("Segmented Objects", blended)
-    cv2.waitKey(1)
-
-
-def handle_lost_detections():
-    """Handle cases where objects are temporarily lost"""
-    global tracker
-    current_time = rospy.get_rostime()
-    
-    # Check each tracked object
-    for obj_id in list(tracker.tracked_objects.keys()):
-        obj = tracker.tracked_objects[obj_id]
-        time_since_last_seen = (current_time - obj['last_seen']).to_sec()
-        
-        if time_since_last_seen > tracker.max_tracking_loss:
-            # Object lost for too long, remove from tracking
-            del tracker.tracked_objects[obj_id]
-            print(f"Removed lost object: {obj_id}")
-        else:
-            # Predict position for temporarily lost object
-            predicted_pos = tracker.predict_position(obj_id)
-            if predicted_pos is not None:
-                # Update visualization with predicted position
-                visualize_predicted_position(predicted_pos, obj_id)
-
-def visualize_predicted_position(position, obj_id):
-    """Visualize predicted object position"""
-    global frame
-    if frame is None:
-        return
-        
-    # Project 3D position back to 2D for visualization
-    focal_length_x = 924.2759399414062
-    focal_length_y = 924.2759399414062
-    center_x = 640.0
-    center_y = 360.0
-    x = int(position[0] * focal_length_x / position[2] + center_x)
-    y = int(position[1] * focal_length_y / position[2] + center_y)
-    
-    # Draw predicted position marker
-    cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)
-    cv2.putText(frame, f"Pred {obj_id}", (x, y - 10),
-               cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-
-
+   
+    cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
+    cv2.imshow("YOLO Object Detection", frame)
+    cv2.waitKey(1)  # Must be called to refresh the window
 def imu_callback(msg: Imu):
     global base_pose
     base_pose = np.zeros(7)
@@ -345,6 +270,7 @@ else:
     }
     base_pose = np.array([0.07, 0., 0.8, 0., 0., 0., 1.])
     base_twist = np.zeros(6)
+    
 
 rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback) 
 rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, depth_callback) 
