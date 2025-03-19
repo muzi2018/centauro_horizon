@@ -166,10 +166,8 @@ def image_callback(msg):
                 x1, y1, x2, y2 = position
                 pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)  # Draw a rectangle
                 print(f"Object: {class_name}, Position: {position}")
-                # Create a text surface with the class_name
-                text_surface = font.render(class_name, True, (255, 255, 255))  # White text
-                # Blit the text at the top-left corner of the bounding box
-                screen.blit(text_surface, (x1, y1 - 20))  # Position the text above the bounding box
+                text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+                screen.blit(text_surface, (x1, y1 - 40))  # Position the text just above the bounding box (adjust the offset as needed)
                 pygame.display.update()
 
                 
