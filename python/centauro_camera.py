@@ -25,6 +25,7 @@ import os
 from gazebo_msgs.msg import LinkStates
 from geometry_msgs.msg import Pose
 from scipy.spatial.transform import Rotation
+import pygame
 
 frame_count = 0
 bridge = CvBridge()
@@ -34,6 +35,10 @@ camera_pose = None
 
 save_folder = os.path.expanduser("~/room")
 os.makedirs(save_folder, exist_ok=True)
+
+# pygame.init()
+# screen = pygame.display.set_mode((1920, 1080)) #1080 x 1920
+# pygame.display.set_caption('Detection')
 
 def depth_callback(msg):
     global depth_image
@@ -46,6 +51,11 @@ def image_callback(msg):
     global rgb_image
     try:
         rgb_image = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+        # frame_vis = np.flip(rgb_image, axis=2)  # Convert from BGR to RGB if necessary
+        # frame_vis = np.transpose(frame_vis, (1, 0, 2))  # Convert from (H, W, C) to (W, H, C)
+        # surface = pygame.surfarray.make_surface(frame_vis)  # Convert to Pygame surface
+        # screen.blit(surface, (0, 0))  # Display the image   
+        # pygame.display.update()
     except Exception as e:
         print(f"Error converting depth image: {e}")
 
