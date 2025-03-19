@@ -21,127 +21,87 @@ from cv_bridge import CvBridge
 import cv2
 import matplotlib.pyplot as plt
 from ultralytics import YOLO  # Import YOLO model from the ultralytics package
+import os
+from gazebo_msgs.msg import LinkStates
+from geometry_msgs.msg import Pose
+from scipy.spatial.transform import Rotation
 
-
+frame_count = 0
 bridge = CvBridge()
+depth_image = None
+rgb_image = None
+camera_pose = None
 
-# Load YOLO model
-model = YOLO('yolo11n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
-
-def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
-    # Extract camera intrinsic parameters
-    fx = intrinsic_matrix[0, 0]  # Focal length in x
-    fy = intrinsic_matrix[1, 1]  # Focal length in y
-    cx_ = intrinsic_matrix[0, 2]  # Principal point x
-    cy_ = intrinsic_matrix[1, 2]  # Principal point y
-    
-    # Convert 2D pixel to 3D coordinates
-    Z = depth  # depth in meters
-    # print("Z = ", Z)
-    X = (cx - cx_) * Z / fx
-    Y = (cy - cy_) * Z / fy
-    
-    return X, Y, Z
-
-# get intrinsic_matrix from camera driver, 
-
+save_folder = os.path.expanduser("~/room")
+os.makedirs(save_folder, exist_ok=True)
 
 def depth_callback(msg):
-    global depth_frame
+    global depth_image
     try:
-        depth_frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")  # Depth in millimeters
-        # print("get the depth_frame")
+        depth_image = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
     except Exception as e:
         print(f"Error converting depth image: {e}")
 
-def get_median_depth(x1, y1, x2, y2):
-    """Compute the median depth within the object's bounding box."""
-    global depth_frame
-    if depth_frame is None:
-        return None
-
-    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-    depth_crop = depth_frame[y1:y2, x1:x2]  # Extract depth region
-    valid_depths = depth_crop[depth_crop > 0]  # Remove zero-depth pixels (invalid)
-    
-    if valid_depths.size > 0:
-        return np.median(valid_depths) * 0.001  # Convert mm to meters
-    return None  # Return None if no valid depths found
-        
-        
-        
 def image_callback(msg):
-    print("Converted image successfully")
+    global rgb_image
     try:
-        frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-        h, w , _= frame.shape
-        frame = frame.copy() 
-        print("Converted image successfully")
+        rgb_image = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
     except Exception as e:
-        print(f"Error converting image: {e}")
-        return
+        print(f"Error converting depth image: {e}")
 
-    cnt = 1
-    # Run YOLO object detection on the frame
-    results = model(frame, verbose=False)  # YOLO detection        
-    detections = results[0]  # Get the first (and usually only) result from the list
+def link_states_callback(msg: LinkStates):
+    global camera_pose
+
+    # Find the index of the camera link
+    link_name = "realsense::D435i_camera_bottom_screw_frame"
+    if link_name in msg.name:
+        idx = msg.name.index(link_name)
+        camera_pose_msg = msg.pose[idx]
+
+        # Extract position
+        position = camera_pose_msg.position
+
+        # Extract orientation (quaternion)
+        orientation = camera_pose_msg.orientation
+        rotation_matrix = Rotation.from_quat([
+            orientation.x, 
+            orientation.y, 
+            orientation.z, 
+            orientation.w
+        ]).as_matrix()
+
+        # Create a 4x4 transformation matrix
+        pose_matrix = np.eye(4)
+        pose_matrix[:3, :3] = rotation_matrix
+        pose_matrix[:3, 3] = [position.x, position.y, position.z]
+
+        # Store the camera pose matrix
+        camera_pose = pose_matrix
+        # print("Camera Pose Matrix:\n", camera_pose)
+    else:
+        print("Camera link not found in link states.")
+
         
-    # Extract bounding boxes, class names, and confidence scores
-    boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
-    # # names = detections.names  # Dictionary mapping class IDs to class names
-    probs = detections.probs  # Confidence scores for each detection
-    
-    if boxes is None:
-        print('boxes is None')
+def record_information(frame_count):
+    if depth_image is not None and camera_pose is not None:
+        depth_image_path = os.path.join(save_folder, f"depth_image_{frame_count}.png")
+        rgb_image_path = os.path.join(save_folder, f"rgb_image_{frame_count}.png")
+        print("save_folder = ", save_folder)
+        cv2.imwrite(depth_image_path, depth_image)
+        cv2.imwrite(rgb_image_path, rgb_image)
+
+        # Save the camera pose matrix to traj.txt
+        traj_file_path = os.path.join(save_folder, "traj.txt")
+        with open(traj_file_path, "a") as traj_file:
+            # Flatten the camera pose matrix and write to the text file
+            traj_file.write(f"Frame {frame_count} Pose Matrix:\n")
+            np.savetxt(traj_file, camera_pose, fmt="%.6f")
+            traj_file.write("\n\n")
         
-    # if probs is None:
-    #     print('probs is None')
-
-    focal_length_x = 1386.4139
-    focal_length_y = 1386.4139
-
-    center_x = 960.0
-    center_y = 540.0
-
-    intrinsic_matrix = np.array([[focal_length_x, 0, center_x],  # Replace with actual values
-                                 [0, focal_length_y, center_y],
-                                 [0, 0, 1]])
-
-    for box in boxes:
-        x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-        depth = get_median_depth(x1, y1, x2, y2)  # Get depth value
-        print("depth_value: ", depth)
+        print(f"Recorded depth image and camera pose for frame {frame_count}")
+    else:
+        print("Depth image or camera pose is not available yet.")
         
-        #get the 3d position in robot
-        X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
-        
-    
-        
-        conf = box.conf[0].item()
-        cls = int(box.cls[0].item())
-        class_name = model.names[cls]
-        print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
-        print(f"Object {cnt} at ({cx}, {cy}) has depth: {depth} meters")
-        print(f"3D position of object {cnt}: ({X:.2f}, {Y:.2f}, {Z:.2f}) meters")
-
-        # print("Box:", box.xyxy.tolist())  # Check structure
-        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        cv2.putText(frame, f"Z ({Z:.2f})", (int(cx), int(cy)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 4)
-
-        cv2.putText(frame, f"{class_name} ({X:.2f}, {Y:.2f})", (int(x1), int(y1) - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 4)
-
-
-        cnt = cnt + 1
-        
-    print("\n\n")  # Prints two empty lines
-    # Ensure OpenCV displays the image
-    cv2.namedWindow("Object Detection", cv2.WINDOW_NORMAL)
-    cv2.imshow("Object Detection", frame)
-    cv2.waitKey(1)  # Must be called to refresh the window
-
 
 rospy.init_node('centauro_camera')
 rospy.sleep(1.)    
@@ -149,13 +109,18 @@ rospy.sleep(1.)
 rate = rospy.Rate(10)
 
 
-rospy.Subscriber("/D435i_camera/color/image_raw", Image, image_callback) 
 rospy.Subscriber("/D435i_camera/aligned_depth_to_color/image_raw", Image, depth_callback) 
+rospy.Subscriber("/D435i_camera/color/image_raw", Image, image_callback) 
+
+rospy.Subscriber("/gazebo/link_states", LinkStates, link_states_callback)
+
 
 while not rospy.is_shutdown():
-    # print('perception2')
-    rospy.spin()
+    # Call the function to record information at each loop cycle
+    record_information(frame_count)
+    
+    # Increment frame count
+    frame_count += 1
+    
+    # Sleep for the rate duration
     rate.sleep()
-
-
-
