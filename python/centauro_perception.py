@@ -25,7 +25,7 @@ from ultralytics import SAM
 # from pcdet.config import cfg, cfg_from_yaml_file
 # from pcdet.models import build_network
 # from pcdet.datasets.kitti.kitti_dataset import KittiDataset
-
+import pygame
 
 
 
@@ -90,12 +90,19 @@ model_det = YOLO('yolo12n.pt')  # You can change the model to another pre-traine
 
 obj_dict = {}
 
+pygame.init()
+screen = pygame.display.set_mode((1280, 720))
+pygame.display.set_caption('Detection')
 
 def image_callback(msg):
     try:
         frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         frame = frame.copy() 
-        print("/n")
+        frame_vis = np.flip(frame, axis=2)  # Convert from BGR to RGB if necessary
+        frame_vis = np.transpose(frame_vis, (1, 0, 2))  # Convert from (H, W, C) to (W, H, C)
+        surface = pygame.surfarray.make_surface(frame_vis)  # Convert to Pygame surface
+        screen.blit(surface, (0, 0))  # Display the image
+        pygame.display.update()
         print("#####-----Converted image successfully-----#####")
     except Exception as e:
         print(f"Error converting image: {e}")
@@ -134,15 +141,15 @@ def image_callback(msg):
         
         print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
         print(f"Object {cnt} at ({X}, {Y}) has depth: {Z} meters")
-        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(cx), int(cy)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        # cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+        # cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(cx), int(cy)),
+        #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        # cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
+        #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
    
-    cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
-    cv2.imshow("YOLO Object Detection", frame)
-    cv2.waitKey(1)  # Must be called to refresh the window
+    # cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
+    # cv2.imshow("YOLO Object Detection", frame)
+    # cv2.waitKey(1)  # Must be called to refresh the window
 def imu_callback(msg: Imu):
     global base_pose
     base_pose = np.zeros(7)
@@ -275,10 +282,17 @@ else:
 rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback) 
 rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, depth_callback) 
 
-while not rospy.is_shutdown():
-    # print('perception')
-    rate.sleep()
-    # rospy.spin()
 
+
+while not rospy.is_shutdown():
+    # for event in pygame.event.get():
+    #     if event.type == pygame.QUIT:
+    #         pygame.quit()
+    #         quit()
+    # pygame.display.update()
+    # # rospy.spin()
+    # pygame.display.flip()
+    # pygame.time.Clock().tick(60)
+    rate.sleep()
 
 
