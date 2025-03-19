@@ -93,6 +93,10 @@ obj_dict = {}
 pygame.init()
 screen = pygame.display.set_mode((1280, 720))
 pygame.display.set_caption('Detection')
+# Set up colors
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
 
 def image_callback(msg):
     try:
@@ -101,7 +105,7 @@ def image_callback(msg):
         frame_vis = np.flip(frame, axis=2)  # Convert from BGR to RGB if necessary
         frame_vis = np.transpose(frame_vis, (1, 0, 2))  # Convert from (H, W, C) to (W, H, C)
         surface = pygame.surfarray.make_surface(frame_vis)  # Convert to Pygame surface
-        screen.blit(surface, (0, 0))  # Display the image
+        screen.blit(surface, (0, 0))  # Display the image   
         pygame.display.update()
         print("#####-----Converted image successfully-----#####")
     except Exception as e:
@@ -128,7 +132,7 @@ def image_callback(msg):
     intrinsic_matrix = np.array([[focal_length_x, 0, center_x],  # Replace with actual values
                                  [0, focal_length_y, center_y],
                                  [0, 0, 1]])
-
+    obj_dict.clear()
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
         conf = box.conf[0].item()
@@ -138,7 +142,11 @@ def image_callback(msg):
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
         depth = get_depth_at(cx, cy)  # Get depth value
         X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
-        
+        # Ensure obj_dict[class_name] is a list of bounding boxes
+        if class_name not in obj_dict:
+            obj_dict[class_name] = []
+        obj_dict[class_name].append((x1, y1, x2, y2))
+ 
         print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
         print(f"Object {cnt} at ({X}, {Y}) has depth: {Z} meters")
         # cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
@@ -150,6 +158,16 @@ def image_callback(msg):
     # cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
     # cv2.imshow("YOLO Object Detection", frame)
     # cv2.waitKey(1)  # Must be called to refresh the window
+    # Draw the bounding boxes for each object in obj_dict
+    if obj_dict:
+        for class_name, positions in obj_dict.items():
+            for position in positions:
+                x1, y1, x2, y2 = position
+                pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)  # Draw a rectangle
+                print(f"Object: {class_name}, Position: {position}")
+                pygame.display.update()
+
+                
 def imu_callback(msg: Imu):
     global base_pose
     base_pose = np.zeros(7)
