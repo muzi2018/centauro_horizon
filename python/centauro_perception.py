@@ -106,7 +106,7 @@ def image_callback(msg):
         frame_vis = np.transpose(frame_vis, (1, 0, 2))  # Convert from (H, W, C) to (W, H, C)
         surface = pygame.surfarray.make_surface(frame_vis)  # Convert to Pygame surface
         screen.blit(surface, (0, 0))  # Display the image   
-        pygame.display.update()
+        # pygame.display.update()
         print("#####-----Converted image successfully-----#####")
     except Exception as e:
         print(f"Error converting image: {e}")
@@ -160,11 +160,16 @@ def image_callback(msg):
     # cv2.waitKey(1)  # Must be called to refresh the window
     # Draw the bounding boxes for each object in obj_dict
     if obj_dict:
+        font = pygame.font.Font(None, 36)  # Create a font object (None means default font)
         for class_name, positions in obj_dict.items():
             for position in positions:
                 x1, y1, x2, y2 = position
                 pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)  # Draw a rectangle
                 print(f"Object: {class_name}, Position: {position}")
+                # Create a text surface with the class_name
+                text_surface = font.render(class_name, True, (255, 255, 255))  # White text
+                # Blit the text at the top-left corner of the bounding box
+                screen.blit(text_surface, (x1, y1 - 20))  # Position the text above the bounding box
                 pygame.display.update()
 
                 
