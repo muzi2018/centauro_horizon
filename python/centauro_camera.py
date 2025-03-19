@@ -85,7 +85,7 @@ def link_states_callback(msg: LinkStates):
 def record_information(frame_count):
     if depth_image is not None and camera_pose is not None:
         depth_image_path = os.path.join(save_folder, f"depth_image_{frame_count}.png")
-        rgb_image_path = os.path.join(save_folder, f"rgb_image_{frame_count}.png")
+        rgb_image_path = os.path.join(save_folder, f"rgb_image_{frame_count}.jpg")
         print("save_folder = ", save_folder)
         cv2.imwrite(depth_image_path, depth_image)
         cv2.imwrite(rgb_image_path, rgb_image)
@@ -94,9 +94,9 @@ def record_information(frame_count):
         traj_file_path = os.path.join(save_folder, "traj.txt")
         with open(traj_file_path, "a") as traj_file:
             # Flatten the camera pose matrix and write to the text file
-            traj_file.write(f"Frame {frame_count} Pose Matrix:\n")
-            np.savetxt(traj_file, camera_pose, fmt="%.6f")
-            traj_file.write("\n\n")
+            # traj_file.write(f"Frame {frame_count} Pose Matrix:\n")
+            np.savetxt(traj_file, camera_pose.reshape(1, 16), fmt="%.6f")
+            # traj_file.write("\n\n")
         
         print(f"Recorded depth image and camera pose for frame {frame_count}")
     else:
