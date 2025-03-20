@@ -24,9 +24,8 @@
     <node pkg="centauro_horizon" type="xbot2-core" name="xbot2" output="screen"
         args="--hw sim --simtime --config $(arg xbot2_config) --"/>
 
-    <node pkg="centauro_horizon" type="centauro_perception.py" name="perception_node" output="screen">
-        <rosparam param="closed_loop">False</rosparam>
-    </node>
+    <!-- <node pkg="centauro_horizon" type="centauro_perception.py" name="perception_node" output="screen">
+    </node> -->
 
     <group if = "$(arg gazebo)">
         <include file="$(find centauro_gazebo)/launch/centauro_perception.launch" pass_all_args="true"/>
@@ -39,7 +38,7 @@
 
     <!-- Publish a static transform from world to pelvis -->
     <node pkg="tf2_ros" type="static_transform_publisher" name="world_to_pelvis" 
-          args="0 0 0.6 0 0 0 world pelvis" />
+          args="0 0 0.8 0 0 0 world pelvis" />
 
 </launch>
 
