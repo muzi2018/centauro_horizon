@@ -8,7 +8,7 @@
     <arg name="battery" default="false"/>
     <arg name="xbot2_config" default="$(find centauro_config)/centauro_basic.yaml"/>
 
-    <arg name="rviz" default="false"/>
+    <arg name="rviz" default="true"/>
     <arg name="gazebo" default="true"/>
 
     <arg name="xbot" default="true" />
@@ -33,7 +33,7 @@
     </group>
 
     <group if="$(arg rviz)">
-        <node pkg="rviz" type="rviz" name="rviz" args="-d $(find centauro_horizon)/rviz/centauro.rviz"/>
+        <node pkg="rviz" type="rviz" name="rviz" args="-d $(find centauro_horizon)/rviz/centauro_camera.rviz"/>
     </group>
 
 

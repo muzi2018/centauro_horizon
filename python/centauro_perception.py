@@ -26,9 +26,17 @@ from ultralytics import SAM
 # from pcdet.models import build_network
 # from pcdet.datasets.kitti.kitti_dataset import KittiDataset
 import pygame
+import os
+from gazebo_msgs.msg import LinkStates
 
 
+save_folder = os.path.expanduser("~/room")
+os.makedirs(save_folder, exist_ok=True)
+save_image_folder = os.path.expanduser("~/room/results")
 
+frame = None
+depth_frame = None
+camera_pose = None
 def compute_mask_center(mask_points):
     """Calculate the center of the mask"""
     if len(mask_points) == 0:
@@ -63,7 +71,38 @@ def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
 
 # get intrinsic_matrix from camera driver, 
 
+def link_states_callback(msg: LinkStates):
+    global camera_pose
 
+    # Find the index of the camera link
+    link_name = "centauro::d435_head_motor"
+    if link_name in msg.name:
+        idx = msg.name.index(link_name)
+        camera_pose_msg = msg.pose[idx]
+
+        # Extract position
+        position = camera_pose_msg.position
+
+        # Extract orientation (quaternion)
+        orientation = camera_pose_msg.orientation
+        rotation_matrix = Rotation.from_quat([
+            orientation.x, 
+            orientation.y, 
+            orientation.z, 
+            orientation.w
+        ]).as_matrix()
+
+        # Create a 4x4 transformation matrix
+        pose_matrix = np.eye(4)
+        pose_matrix[:3, :3] = rotation_matrix
+        pose_matrix[:3, 3] = [position.x, position.y, position.z]
+
+        # Store the camera pose matrix
+        camera_pose = pose_matrix
+        # print("Camera Pose Matrix:\n", camera_pose)
+    else:
+        print("Camera link not found in link states.")
+        
 def depth_callback(msg):
     global depth_frame
     try:
@@ -90,86 +129,42 @@ model_det = YOLO('yolo12n.pt')  # You can change the model to another pre-traine
 
 obj_dict = {}
 
-pygame.init()
-screen = pygame.display.set_mode((1280, 720))
-pygame.display.set_caption('Detection')
+# pygame.init()
+# screen = pygame.display.set_mode((1280, 720))
+# pygame.display.set_caption('Detection')
 # Set up colors
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 
 def image_callback(msg):
+    global frame
     try:
         frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-        frame = frame.copy() 
-        frame_vis = np.flip(frame, axis=2)  # Convert from BGR to RGB if necessary
-        frame_vis = np.transpose(frame_vis, (1, 0, 2))  # Convert from (H, W, C) to (W, H, C)
-        surface = pygame.surfarray.make_surface(frame_vis)  # Convert to Pygame surface
-        screen.blit(surface, (0, 0))  # Display the image   
-        # pygame.display.update()
-        print("#####-----Converted image successfully-----#####")
+        # print("#####-----Converted image successfully-----#####")
     except Exception as e:
         print(f"Error converting image: {e}")
         return
 
-    cnt = 0
-    results_det = model_det(frame, verbose=False)  # YOLO detection        
-    detections = results_det[0]  # Get the first (and usually only) result from the list
+
+def record_information(frame_count):
+    if depth_frame is not None and camera_pose is not None:
+        depth_image_path = os.path.join(save_image_folder, f"depth_image_{frame_count}.png")
+        rgb_image_path = os.path.join(save_image_folder, f"rgb_image_{frame_count}.jpg")
+        cv2.imwrite(depth_image_path, depth_frame)
+        cv2.imwrite(rgb_image_path, frame)
+
+        # Save the camera pose matrix to traj.txt
+        traj_file_path = os.path.join(save_folder, "traj.txt")
+        with open(traj_file_path, "a") as traj_file:
+            # Flatten the camera pose matrix and write to the text file
+            # traj_file.write(f"Frame {frame_count} Pose Matrix:\n")
+            np.savetxt(traj_file, camera_pose.reshape(1, 16), fmt="%.6f")
+            # traj_file.write("\n\n")
         
-    boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
-    probs = detections.probs  # Confidence scores for each detection
-    
-    if boxes is None:
-        print('boxes is None')
-        return
-
-    focal_length_x = 924.2759399414062
-    focal_length_y = 924.2759399414062
-
-    center_x = 640.0
-    center_y = 360.0
-
-    intrinsic_matrix = np.array([[focal_length_x, 0, center_x],  # Replace with actual values
-                                 [0, focal_length_y, center_y],
-                                 [0, 0, 1]])
-    obj_dict.clear()
-    for box in boxes:
-        x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
-        conf = box.conf[0].item()
-        cls = int(box.cls[0].item())
-        class_name = model_det.names[cls]
-        
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-        depth = get_depth_at(cx, cy)  # Get depth value
-        X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
-        # Ensure obj_dict[class_name] is a list of bounding boxes
-        if class_name not in obj_dict:
-            obj_dict[class_name] = []
-        obj_dict[class_name].append((x1, y1, x2, y2))
- 
-        print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
-        print(f"Object {cnt} at ({X}, {Y}) has depth: {Z} meters")
-        # cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        # cv2.putText(frame, f"p ({X:.2f}, {Y:.2f}, {Z:.2f})", (int(cx), int(cy)),
-        #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        # cv2.putText(frame, f"{class_name} ({conf:.2f})", (int(x1), int(y1) - 10),
-        #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-   
-    # cv2.namedWindow("YOLO Object Detection", cv2.WINDOW_NORMAL)
-    # cv2.imshow("YOLO Object Detection", frame)
-    # cv2.waitKey(1)  # Must be called to refresh the window
-    # Draw the bounding boxes for each object in obj_dict
-    if obj_dict:
-        font = pygame.font.Font(None, 36)  # Create a font object (None means default font)
-        for class_name, positions in obj_dict.items():
-            for position in positions:
-                x1, y1, x2, y2 = position
-                pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)  # Draw a rectangle
-                print(f"Object: {class_name}, Position: {position}")
-                text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
-                screen.blit(text_surface, (x1, y1 - 40))  # Position the text just above the bounding box (adjust the offset as needed)
-                pygame.display.update()
-
+        print(f"Recorded depth image and camera pose for frame {frame_count}")
+    else:
+        print("Depth image or camera pose is not available yet.")
                 
 def imu_callback(msg: Imu):
     global base_pose
@@ -204,7 +199,7 @@ if srdf == '':
     raise print('srdf not set')
 file_dir = rospkg.RosPack().get_path('centauro_horizon')
 
-rate = rospy.Rate(50)
+rate = rospy.Rate(6)
 
 '''
 Build ModelInterface and RobotStatePublisher
@@ -303,17 +298,16 @@ else:
 rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback) 
 rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, depth_callback) 
 
-
-
+rospy.Subscriber("/gazebo/link_states", LinkStates, link_states_callback)
+frame_count = 0
 while not rospy.is_shutdown():
-    # for event in pygame.event.get():
-    #     if event.type == pygame.QUIT:
-    #         pygame.quit()
-    #         quit()
-    # pygame.display.update()
-    # # rospy.spin()
-    # pygame.display.flip()
-    # pygame.time.Clock().tick(60)
+    # Call the function to record information at each loop cycle
+    record_information(frame_count)
+    
+    # Increment frame count
+    frame_count += 1
+    
+    # Sleep for the rate duration
     rate.sleep()
 
 
