@@ -1,0 +1,29 @@
+﻿{
+	"class_name" : "PinholeCameraParameters",
+	"extrinsic" : 
+	[
+		0.0, 0.0, 0.0, 0.0,
+		0.0, 0.0, 0.0, 0.0,
+		0.0, 0.0, 0.0, 0.0,
+		0.0, 0.0, 0.0, 1.0
+	],
+	"intrinsic" : 
+	{
+		"height" : 720,
+		"intrinsic_matrix" : 
+		[
+			924.2759399414062,
+			0.0,
+			640.0,
+			0.0,
+			924.2759399414062,
+			360.0,
+			0.0,
+			0.0,
+			1.0
+		],
+		"width" : 1280
+	},
+	"version_major" : 1,
+	"version_minor" : 0
+}
