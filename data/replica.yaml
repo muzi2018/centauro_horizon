@@ -29,5 +29,7 @@ camera_params:
   fy: 924.2759399414062
   cx: 640.0
   cy: 360.0
-  png_depth_scale: 1000 #for depth image in png format
+  png_depth_scale: 40 #for depth image in png format 0.02505 meters
   crop_edge: 0
+
+.
