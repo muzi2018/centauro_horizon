@@ -89,6 +89,8 @@ def get_depth_at(x, y):
 bridge = CvBridge()
 # Load YOLO model
 model_det = YOLO('yolo12n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
+model_sam = SAM("sam_b.pt")
+
 
 obj_dict = {"chair1":(0,0,0)}
 
@@ -136,7 +138,7 @@ def image_callback(msg):
                                  [0, 0, 1]])
     
     confidence_threshold = 0.8    
-    
+    results_sam = []
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
         conf = box.conf[0].item()
@@ -156,6 +158,8 @@ def image_callback(msg):
             if cnt == 0:
                 obj_dict["chair1"] = (X, Y, Z)
 
+        
+        results_sam.append(model_sam(frame, bboxes=[x1, y1, x2, y2]))  # Append the result
 
         print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
         # print(f"Object {cnt} at ({X}, {Y}) has depth: {Z} meters")
