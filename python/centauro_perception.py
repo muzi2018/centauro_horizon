@@ -27,8 +27,7 @@ from ultralytics import SAM
 # from pcdet.datasets.kitti.kitti_dataset import KittiDataset
 import pygame
 
-# 435_head_camera_color_optical_frame
-
+update_flag = True
 
 def compute_mask_center(mask_points):
     """Calculate the center of the mask"""
@@ -89,6 +88,7 @@ bridge = CvBridge()
 # Load YOLO model
 model_det = YOLO('yolo12n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
 
+obj_dict_buff = {}
 obj_dict = {"chair1":(0,0,0), "chair2":(0,0,0), "chair3":(0,0,0)}
 
 pygame.init()
@@ -133,7 +133,9 @@ def image_callback(msg):
     intrinsic_matrix = np.array([[focal_length_x, 0, center_x],  # Replace with actual values
                                  [0, focal_length_y, center_y],
                                  [0, 0, 1]])
-    # obj_dict.clear()
+    
+    confidence_threshold = 0.8    
+    
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
         conf = box.conf[0].item()
@@ -145,27 +147,16 @@ def image_callback(msg):
         depth = get_depth_at(cx, cy)  # Get depth value
         X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
 
-
-
-        # if class_name not in obj_dict:
-        #     obj_dict[class_name] = []
-        # obj_dict[class_name].append((x1, y1, x2, y2))
  
- 
+        if conf < confidence_threshold:
+            continue  # Skip this detection
  
         if class_name == "chair":
-            if cnt == 0 and obj_dict["chair1"] == (0, 0, 0):
-                obj_dict["chair1"] = (X, Y, Z)
-            if cnt == 1 and obj_dict["chair2"] == (0, 0, 0):
-                obj_dict["chair2"] = (X, Y, Z)
-            if cnt == 2 and obj_dict["chair3"] == (0, 0, 0):
-                obj_dict["chair3"] = (X, Y, Z)
+            if cnt == 0:
+                obj_dict_buff["chair1"] = (X, Y, Z)
 
 
-
-
-
-        # print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
+        print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
         # print(f"Object {cnt} at ({X}, {Y}) has depth: {Z} meters")
         
         cnt = cnt + 1
@@ -213,7 +204,7 @@ if srdf == '':
     raise print('srdf not set')
 file_dir = rospkg.RosPack().get_path('centauro_horizon')
 
-rate = rospy.Rate(50)
+rate = rospy.Rate(5)
 
 '''
 Build ModelInterface and RobotStatePublisher
