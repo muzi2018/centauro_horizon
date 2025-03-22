@@ -83,7 +83,7 @@ def get_depth_at(x, y):
     h, w = depth_frame.shape
     x, y = int(x), int(y)
     if 0 <= x < w and 0 <= y < h:
-        return depth_frame[y, x] * 0.001  # Convert from mm to meters
+        return depth_frame[x, y] * 0.001  # Convert from mm to meters
     return None
         
 bridge = CvBridge()
@@ -141,35 +141,49 @@ def image_callback(msg):
     results_sam = []
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
+        bbox_center = np.array([(x1 + x2) / 2, (y1 + y2) / 2])
+        
         conf = box.conf[0].item()
         cls = int(box.cls[0].item())
         class_name = model_det.names[cls]
         
-        
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-        depth = get_depth_at(cx, cy)  # Get depth value
-        X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
+        # cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        # depth = get_depth_at(cx, cy)  # Get depth value
+        # X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
 
- 
         if conf < confidence_threshold:
             continue  # Skip this detection
  
-        if class_name == "chair":
-            if cnt == 0:
-                obj_dict["chair1"] = (X, Y, Z)
+        # if class_name == "chair":
+        #     if cnt == 0:
+        #         obj_dict["chair1"] = (X, Y, Z)
 
-        
         results_sam.append(model_sam(frame, bboxes=[x1, y1, x2, y2]))  # Append the result
 
-        print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
+        for i, mask in enumerate(results_sam[cnt][0].masks.xy):
+            mask = np.array(mask, np.int32)
+            mask_points = mask.reshape((-1, 2))
+            distances = np.linalg.norm(mask_points - bbox_center, axis=1)
+            closest_index = np.argmin(distances)
+            closest_point = tuple(mask_points[closest_index]) 
+            center_x, center_y = closest_point
+            depth = get_depth_at(center_x, center_y)  # Get depth value
+            X, Y, Z = pixel_to_3d(center_x, center_y, depth, intrinsic_matrix)  # Convert to 3D
+            
+            # print(f"Center of mask: ({X}, {Y})")
+            
+        # print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
         # print(f"Object {cnt} at ({X}, {Y}) has depth: {Z} meters")
         
         cnt = cnt + 1
         font = pygame.font.Font(None, 36)  # Create a font object (None means default font)
         pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)  # Draw a rectangle
+        pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)  # Draw red point
         # print(f"Object: {class_name}, Position: {position}")
         text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
         screen.blit(text_surface, (x1, y1 - 40))  # Position the text just above the bounding box (adjust the offset as needed)
+        
+
     pygame.display.update()
 
 
