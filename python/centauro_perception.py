@@ -83,7 +83,7 @@ def get_depth_at(x, y):
     h, w = depth_frame.shape
     x, y = int(x), int(y)
     if 0 <= x < w and 0 <= y < h:
-        return depth_frame[x, y] * 0.001  # Convert from mm to meters
+        return depth_frame[y, x] * 0.001  # Convert from mm to meters
     return None
         
 bridge = CvBridge()
