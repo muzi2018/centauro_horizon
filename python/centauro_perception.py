@@ -31,6 +31,38 @@ import json
 
 update_flag = True
 
+def get_robust_depth_in_bbox(x1, y1, x2, y2, depth_frame, num_samples=100):
+    """Average depth over several pixels within the bounding box."""
+    # Ensure bounding box is within image bounds
+    h, w = depth_frame.shape
+    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+    
+    # # Clip the bounding box to be within the image dimensions
+    # x1, y1 = max(x1, 0), max(y1, 0)
+    # x2, y2 = min(x2, w), min(y2, h)
+    
+    # Sample random pixels within the bounding box
+    sampled_depths = []
+    
+    for _ in range(num_samples):
+        # Randomly sample a point within the bounding box
+        rand_x = np.random.randint(x1, x2)
+        rand_y = np.random.randint(y1, y2)
+        
+        # Get depth value at this point
+        depth_value = depth_frame[rand_y, rand_x]
+        
+        # Only add valid depth values (non-zero, valid depth)
+        if depth_value > 0:
+            sampled_depths.append(depth_value)
+    
+    if len(sampled_depths) == 0:
+        return None  # Return None if no valid depths were sampled
+    
+    # Compute the average depth (convert from mm to meters)
+    avg_depth = np.mean(sampled_depths) * 0.001  # Convert mm to meters
+    return avg_depth
+
 def compute_mask_center(mask_points):
     """Calculate the center of the mask"""
     if len(mask_points) == 0:
@@ -161,6 +193,9 @@ def image_callback(msg):
         results_sam.append(model_sam(frame, bboxes=[x1, y1, x2, y2]))  # Append the result
 
         for i, mask in enumerate(results_sam[cnt][0].masks.xy):
+            
+            
+            
             mask = np.array(mask, np.int32)
             mask_points = mask.reshape((-1, 2))
             distances = np.linalg.norm(mask_points - bbox_center, axis=1)
