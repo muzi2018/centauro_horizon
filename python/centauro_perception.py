@@ -31,15 +31,14 @@ import json
 
 update_flag = True
 
-
-def get_mask_depth_average(mask, depth_frame, num_samples=100):
+def get_mask_depth_average(mask, depth_frame, num_samples=300):
     """Compute the average depth for a mask (points within the mask)."""
     sampled_depths = []
     
     # Sample points from the mask
     mask_points = np.array(mask, dtype=np.int32)
     print("mask_points = ", mask_points.shape)
-    for point in mask_points[0]:
+    for point in mask_points:
         x, y = point[0], point[1]  # Extract pixel coordinates
         # print("point in get mask: ", point)
         
@@ -55,38 +54,6 @@ def get_mask_depth_average(mask, depth_frame, num_samples=100):
     
     # Compute the average depth
     avg_depth = np.mean(sampled_depths)
-    return avg_depth
-
-def get_robust_depth_in_bbox(x1, y1, x2, y2, depth_frame, num_samples=100):
-    """Average depth over several pixels within the bounding box."""
-    # Ensure bounding box is within image bounds
-    h, w = depth_frame.shape
-    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-    
-    # # Clip the bounding box to be within the image dimensions
-    # x1, y1 = max(x1, 0), max(y1, 0)
-    # x2, y2 = min(x2, w), min(y2, h)
-    
-    # Sample random pixels within the bounding box
-    sampled_depths = []
-    
-    for _ in range(num_samples):
-        # Randomly sample a point within the bounding box
-        rand_x = np.random.randint(x1, x2)
-        rand_y = np.random.randint(y1, y2)
-        
-        # Get depth value at this point
-        depth_value = depth_frame[rand_y, rand_x]
-        
-        # Only add valid depth values (non-zero, valid depth)
-        if depth_value > 0:
-            sampled_depths.append(depth_value)
-    
-    if len(sampled_depths) == 0:
-        return None  # Return None if no valid depths were sampled
-    
-    # Compute the average depth (convert from mm to meters)
-    avg_depth = np.mean(sampled_depths) * 0.001  # Convert mm to meters
     return avg_depth
 
 def compute_mask_center(mask_points):
@@ -141,7 +108,7 @@ def get_depth_at(x, y):
     h, w = depth_frame.shape
     x, y = int(x), int(y)
     if 0 <= x < w and 0 <= y < h:
-        return depth_frame[y, x] * 0.001  # Convert from mm to meters
+        return depth_frame[x, y] * 0.001  # Convert from mm to meters
     return None
         
 bridge = CvBridge()
@@ -201,7 +168,6 @@ def image_callback(msg):
         x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
         bbox_center = np.array([(x1 + x2) / 2, (y1 + y2) / 2])
         
-
         conf = box.conf[0].item()
         cls = int(box.cls[0].item())
         class_name = model_det.names[cls]
@@ -218,24 +184,15 @@ def image_callback(msg):
         #         obj_dict["chair1"] = (X, Y, Z)
 
         results_sam.append(model_sam(frame, bboxes=[x1, y1, x2, y2]))  # Append the result
-        
-        mask = results_sam[cnt][0].masks.xy
-        avg_depth = get_mask_depth_average(mask, depth_frame, num_samples=100)
 
-
-        # for i, mask in enumerate(results_sam[cnt][0].masks.xy):
-        #     mask = np.array(mask, np.int32)
-        #     mask_points = mask.reshape((-1, 2))
-        #     distances = np.linalg.norm(mask_points - bbox_center, axis=1)
-        #     closest_index = np.argmin(distances)
-        #     closest_point = tuple(mask_points[closest_index]) 
-        #     center_x, center_y = closest_point
-        #     depth = get_depth_at(center_x, center_y)  # Get depth value
-        #     X, Y, Z = pixel_to_3d(center_x, center_y, depth, intrinsic_matrix)  # Convert to 3D
+        for i, mask in enumerate(results_sam[cnt][0].masks.xy):
+            mask = np.array(mask, np.int32)
+            
+            depth = get_mask_depth_average(mask, depth_frame, num_samples=100)
+            X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D
             
             # print(f"Center of mask: ({X}, {Y})")
-        # depth = get_robust_depth_in_bbox(x1, y1, x2, y2, depth_frame, num_samples=100)
-        X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], avg_depth, intrinsic_matrix)  # Convert to 3D
+            
         # print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
         # print(f"Object {cnt} at ({X}, {Y}) has depth: {Z} meters")
         
