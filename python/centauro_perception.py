@@ -26,6 +26,8 @@ from ultralytics import SAM
 # from pcdet.models import build_network
 # from pcdet.datasets.kitti.kitti_dataset import KittiDataset
 import pygame
+from std_msgs.msg import String
+import json
 
 update_flag = True
 
@@ -88,8 +90,7 @@ bridge = CvBridge()
 # Load YOLO model
 model_det = YOLO('yolo12n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
 
-obj_dict_buff = {}
-obj_dict = {"chair1":(0,0,0), "chair2":(0,0,0), "chair3":(0,0,0)}
+obj_dict = {"chair1":(0,0,0)}
 
 pygame.init()
 screen = pygame.display.set_mode((1280, 720))
@@ -153,7 +154,7 @@ def image_callback(msg):
  
         if class_name == "chair":
             if cnt == 0:
-                obj_dict_buff["chair1"] = (X, Y, Z)
+                obj_dict["chair1"] = (X, Y, Z)
 
 
         print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
@@ -302,13 +303,15 @@ else:
 
 rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback) 
 rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, depth_callback) 
+pub_pos = rospy.Publisher('object_positions', String, queue_size=10)
 
 
 
 while not rospy.is_shutdown():
     # for obj_name, position in obj_dict.items():
     #     print(f"{obj_name}: {position}")
-    
+    msg = json.dumps(obj_dict)
+    pub_pos.publish(msg)
     rate.sleep()
 
 
