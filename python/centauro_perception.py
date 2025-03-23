@@ -148,9 +148,7 @@ def image_callback(msg):
     boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
     probs = detections.probs  # Confidence scores for each detection
 
-    if boxes is None:
-        print('boxes is None')
-        return
+
 
 
     focal_length_x = 924.2759399414062
@@ -178,7 +176,6 @@ def image_callback(msg):
         # X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
 
         if conf < confidence_threshold:
-            obj_dict["chair_1"]["detected"] = False
             continue  # Skip this detection
  
 
@@ -214,7 +211,10 @@ def image_callback(msg):
         screen.blit(text_surface, (x1, y1 - 40))  # Position the text just above the bounding box (adjust the offset as needed)
         
     # print("chair_1 detected: ", obj_dict["chair_1"]["detected"])
-
+    if boxes is None or len(boxes) == 0:
+        obj_dict["chair_1"]["detected"] = False
+        print('boxes is None')
+        return
     pygame.display.update()
 
 
