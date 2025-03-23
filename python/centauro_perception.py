@@ -108,7 +108,7 @@ def get_depth_at(x, y):
     h, w = depth_frame.shape
     x, y = int(x), int(y)
     if 0 <= x < w and 0 <= y < h:
-        return depth_frame[x, y] * 0.001  # Convert from mm to meters
+        return depth_frame[y, x] * 0.001  # Convert from mm to meters
     return None
         
 bridge = CvBridge()
@@ -117,7 +117,7 @@ model_det = YOLO('yolo12n.pt')  # You can change the model to another pre-traine
 model_sam = SAM("sam_b.pt")
 
 
-obj_dict = {"chair1":(0,0,0)}
+obj_dict = {}
 
 pygame.init()
 screen = pygame.display.set_mode((1280, 720))
@@ -179,9 +179,7 @@ def image_callback(msg):
         if conf < confidence_threshold:
             continue  # Skip this detection
  
-        # if class_name == "chair":
-        #     if cnt == 0:
-        #         obj_dict["chair1"] = (X, Y, Z)
+
 
         results_sam.append(model_sam(frame, bboxes=[x1, y1, x2, y2]))  # Append the result
 
@@ -192,7 +190,8 @@ def image_callback(msg):
             X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D
             
             # print(f"Center of mask: ({X}, {Y})")
-            
+        if class_name == "chair" and Z <= 4.5:
+            obj_dict["chair1"] = (X, Y, Z)
         # print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
         # print(f"Object {cnt} at ({X}, {Y}) has depth: {Z} meters")
         
