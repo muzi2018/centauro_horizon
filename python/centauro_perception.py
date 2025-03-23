@@ -114,7 +114,7 @@ def get_depth_at(x, y):
 bridge = CvBridge()
 # Load YOLO model
 model_det = YOLO('yolo12n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
-model_sam = SAM("sam_b.pt")
+# model_sam = SAM("sam_b.pt")
 
 
 obj_dict = {"chair_1": {"position":(0.0, 0.0, 0.0), "detected": False}}
@@ -180,13 +180,14 @@ def image_callback(msg):
  
 
 
-        results_sam.append(model_sam(frame, bboxes=[x1, y1, x2, y2]))  # Append the result
+        # results_sam.append(model_sam(frame, bboxes=[x1, y1, x2, y2]))  # Append the result
 
-        for i, mask in enumerate(results_sam[cnt][0].masks.xy):
-            mask = np.array(mask, np.int32)
-            depth = get_mask_depth_average(mask, depth_frame, num_samples=100)
-            X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D
-            
+        # for i, mask in enumerate(results_sam[cnt][0].masks.xy):
+        #     mask = np.array(mask, np.int32)
+        #     depth = get_mask_depth_average(mask, depth_frame, num_samples=100)
+        #     X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D
+        depth = get_depth_at(bbox_center[0], bbox_center[1])
+        X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D          
             # print(f"Center of mask: ({X}, {Y})")
         if class_name == "chair" and Z <= 4.2 and cnt == 0:
             obj_dict["chair_1"]["position"] = (X, Y, Z)
@@ -254,7 +255,7 @@ if srdf == '':
     raise print('srdf not set')
 file_dir = rospkg.RosPack().get_path('centauro_horizon')
 
-rate = rospy.Rate(5)
+rate = rospy.Rate(20)
 
 '''
 Build ModelInterface and RobotStatePublisher
