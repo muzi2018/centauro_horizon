@@ -117,7 +117,7 @@ model_det = YOLO('yolo12n.pt')  # You can change the model to another pre-traine
 model_sam = SAM("sam_b.pt")
 
 
-obj_dict = {}
+obj_dict = {"chair_1": {"position":(0.0, 0.0, 0.0), "detected": False}}
 
 pygame.init()
 screen = pygame.display.set_mode((1280, 720))
@@ -147,10 +147,11 @@ def image_callback(msg):
         
     boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
     probs = detections.probs  # Confidence scores for each detection
-    
+
     if boxes is None:
         print('boxes is None')
         return
+
 
     focal_length_x = 924.2759399414062
     focal_length_y = 924.2759399414062
@@ -177,6 +178,7 @@ def image_callback(msg):
         # X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
 
         if conf < confidence_threshold:
+            obj_dict["chair_1"]["detected"] = False
             continue  # Skip this detection
  
 
@@ -185,13 +187,21 @@ def image_callback(msg):
 
         for i, mask in enumerate(results_sam[cnt][0].masks.xy):
             mask = np.array(mask, np.int32)
-            
             depth = get_mask_depth_average(mask, depth_frame, num_samples=100)
             X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D
             
             # print(f"Center of mask: ({X}, {Y})")
-        if class_name == "chair" and Z <= 4.5:
-            obj_dict["chair1"] = (X, Y, Z)
+        if class_name == "chair" and Z <= 4.2 and cnt == 0:
+            obj_dict["chair_1"]["position"] = (X, Y, Z)
+            obj_dict["chair_1"]["detected"] = True
+            
+        
+        # if class_name == "chair" and Z <= 4.5 and cnt == 1:
+        #     obj_dict["chair2"] = (X, Y, Z)
+        
+        # if class_name == "chair" and Z <= 4.5 and cnt == 2:
+        #     obj_dict["chair3"] = (X, Y, Z)
+        
         # print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
         # print(f"Object {cnt} at ({X}, {Y}) has depth: {Z} meters")
         
@@ -199,10 +209,11 @@ def image_callback(msg):
         font = pygame.font.Font(None, 36)  # Create a font object (None means default font)
         pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)  # Draw a rectangle
         pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)  # Draw red point
-        # print(f"Object: {class_name}, Position: {position}")
+        # print(f"Object: {class_name}")
         text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
         screen.blit(text_surface, (x1, y1 - 40))  # Position the text just above the bounding box (adjust the offset as needed)
         
+    # print("chair_1 detected: ", obj_dict["chair_1"]["detected"])
 
     pygame.display.update()
 
