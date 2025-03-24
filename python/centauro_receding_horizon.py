@@ -434,7 +434,7 @@ for c in model.getContactMap(): # c: contact_1, contact_2, contact_3, contact_4
     init_z_foot = model.kd.fk(c)(q=model.q0)['ee_pos'].elements()[2]
     ee_vel = model.kd.frameVelocity(c, model.kd_frame)(q=model.q, qdot=model.v)['ee_vel_linear']
     ref_trj = np.zeros(shape=[7, flight_duration])
-    ref_trj[2, :] = np.atleast_2d(tg.from_derivatives(flight_duration, init_z_foot, init_z_foot + 0.01, 0.15, [None, 0, None])) # (self, nodes, p_start, p_goal, clearance, derivatives=None)
+    ref_trj[2, :] = np.atleast_2d(tg.from_derivatives(flight_duration, init_z_foot, init_z_foot + 0.01, 0.2, [None, 0, None])) # (self, nodes, p_start, p_goal, clearance, derivatives=None)
     if ti.getTask(f'z_contact_{c_i}') is not None:
         flight_phase.addItemReference(ti.getTask(f'z_contact_{c_i}'), ref_trj)
     else:

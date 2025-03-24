@@ -1,0 +1,7 @@
+<launch>
+
+    <node pkg="centauro_horizon" type="centauro_perception.py" name="perception_node" output="screen">
+    </node>
+
+</launch>
+
