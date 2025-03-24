@@ -20,76 +20,37 @@ import colorama
 from cv_bridge import CvBridge
 import cv2
 import matplotlib.pyplot as plt
-from ultralytics import YOLO  # Import YOLO model from the ultralytics package
+from ultralytics import YOLO  
 from ultralytics import SAM
-# from pcdet.config import cfg, cfg_from_yaml_file
-# from pcdet.models import build_network
-# from pcdet.datasets.kitti.kitti_dataset import KittiDataset
 import pygame
 from std_msgs.msg import String
 import json
 
 update_flag = True
 
-def get_mask_depth_average(mask, depth_frame, num_samples=300):
-    """Compute the average depth for a mask (points within the mask)."""
-    sampled_depths = []
-    
-    # Sample points from the mask
-    mask_points = np.array(mask, dtype=np.int32)
-    print("mask_points = ", mask_points.shape)
-    for point in mask_points:
-        x, y = point[0], point[1]  # Extract pixel coordinates
-        # print("point in get mask: ", point)
-        
-        # Get the depth at this point
-        depth_value = get_depth_at(x, y)  # This uses your existing depth function
-        
-        if depth_value is not None and depth_value > 0:
-            sampled_depths.append(depth_value)
-    
-    # If there are no valid depth samples, return None
-    if len(sampled_depths) == 0:
-        return None
-    
-    # Compute the average depth
-    avg_depth = np.mean(sampled_depths)
-    return avg_depth
-
-def compute_mask_center(mask_points):
-    """Calculate the center of the mask"""
-    if len(mask_points) == 0:
-        return None  
-
-    mask_points = np.array(mask_points, dtype=np.int32)
-
-    moments = cv2.moments(mask_points)
-    if moments['m00'] == 0:  # Avoid division by zero
-        return None
-
-    # Calculate the center of mass (centroid)
-    center_x = int(moments['m10'] / moments['m00'])
-    center_y = int(moments['m01'] / moments['m00'])
-    
-    return center_x, center_y
-
-
 def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
     # Extract camera intrinsic parameters
-    fx = intrinsic_matrix[0, 0]  # Focal length in x
-    fy = intrinsic_matrix[1, 1]  # Focal length in y
-    cx_ = intrinsic_matrix[0, 2]  # Principal point x
-    cy_ = intrinsic_matrix[1, 2]  # Principal point y
+    fx = intrinsic_matrix[0, 0]     # Focal length in x
+    fy = intrinsic_matrix[1, 1]     # Focal length in y
+    cx_ = intrinsic_matrix[0, 2]    # Principal point x
+    cy_ = intrinsic_matrix[1, 2]    # Principal point y
     
     # Convert 2D pixel to 3D coordinates
     Z = depth  # depth in meters
     X = (cx - cx_) * Z / fx
     Y = (cy - cy_) * Z / fy
-    
     return X, Y, Z
 
-# get intrinsic_matrix from camera driver, 
-
+def get_depth_at(x, y):
+    """Get depth value at a given (x, y) coordinate."""
+    global depth_frame
+    if depth_frame is None:
+        return None
+    h, w = depth_frame.shape
+    x, y = int(x), int(y)
+    if 0 <= x < w and 0 <= y < h:
+        return depth_frame[y, x] * 0.001  
+    return None
 
 def depth_callback(msg):
     global depth_frame
@@ -98,58 +59,24 @@ def depth_callback(msg):
     except Exception as e:
         print(f"Error converting depth image: {e}")
 
-def get_depth_at(x, y):
-    """Get depth value at a given (x, y) coordinate."""
-    global depth_frame
-    if depth_frame is None:
-        return None
-
-    # Ensure x, y are within bounds
-    h, w = depth_frame.shape
-    x, y = int(x), int(y)
-    if 0 <= x < w and 0 <= y < h:
-        return depth_frame[y, x] * 0.001  # Convert from mm to meters
-    return None
-        
-bridge = CvBridge()
-# Load YOLO model
-model_det = YOLO('yolo12n.pt')  # You can change the model to another pre-trained model (e.g., yolov8s.pt)
-# model_sam = SAM("sam_b.pt")
-
-
-obj_dict = {"chair_1": {"position":(0.0, 0.0, 0.0), "detected": False}}
-
-pygame.init()
-screen = pygame.display.set_mode((1280, 720))
-pygame.display.set_caption('Detection')
-# Set up colors
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-
 def image_callback(msg):
     try:
         frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         frame = frame.copy() 
-        frame_vis = np.flip(frame, axis=2)  # Convert from BGR to RGB if necessary
-        frame_vis = np.transpose(frame_vis, (1, 0, 2))  # Convert from (H, W, C) to (W, H, C)
+        frame_vis = np.flip(frame, axis=2)                  # Convert from BGR to RGB if necessary
+        frame_vis = np.transpose(frame_vis, (1, 0, 2))      # Convert from (H, W, C) to (W, H, C)
         surface = pygame.surfarray.make_surface(frame_vis)  # Convert to Pygame surface
-        screen.blit(surface, (0, 0))  # Display the image   
-        # pygame.display.update()
-        # print("#####-----Converted image successfully-----#####")
+        screen.blit(surface, (0, 0))                        # Display the image   
     except Exception as e:
         print(f"Error converting image: {e}")
         return
 
     cnt = 0
-    results_det = model_det(frame, verbose=False)  # YOLO detection        
-    detections = results_det[0]  # Get the first (and usually only) result from the list
-        
-    boxes = detections.boxes  # Bounding boxes in format (x1, y1, x2, y2)
-    probs = detections.probs  # Confidence scores for each detection
+    results_det = model_det(frame, verbose=False)                   # YOLO detection        
+    detections = results_det[0]                                     # Get the first (and usually only) result from the list
 
-
-
+    boxes = detections.boxes                                        # Bounding boxes in format (x1, y1, x2, y2)
+    probs = detections.probs                                        # Confidence scores for each detection
 
     focal_length_x = 924.2759399414062
     focal_length_y = 924.2759399414062
@@ -157,71 +84,41 @@ def image_callback(msg):
     center_x = 640.0
     center_y = 360.0
 
-    intrinsic_matrix = np.array([[focal_length_x, 0, center_x],  # Replace with actual values
+    intrinsic_matrix = np.array([[focal_length_x, 0, center_x],                         # Replace with actual values
                                  [0, focal_length_y, center_y],
                                  [0, 0, 1]])
-    
     confidence_threshold = 0.8    
-    results_sam = []
     for box in boxes:
-        x1, y1, x2, y2 = box.xyxy[0].tolist()  # Convert box tensor to list of coordinates
+        x1, y1, x2, y2 = box.xyxy[0].tolist()                                           # Convert box tensor to list of coordinates
         bbox_center = np.array([(x1 + x2) / 2, (y1 + y2) / 2])
         
         conf = box.conf[0].item()
         cls = int(box.cls[0].item())
         class_name = model_det.names[cls]
-        
-        # cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-        # depth = get_depth_at(cx, cy)  # Get depth value
-        # X, Y, Z = pixel_to_3d(cx, cy, depth, intrinsic_matrix)  # Convert to 3D
 
         if conf < confidence_threshold:
-            continue  # Skip this detection
+            continue                                                                    # Skip this detection
  
-
-
-        # results_sam.append(model_sam(frame, bboxes=[x1, y1, x2, y2]))  # Append the result
-
-        # for i, mask in enumerate(results_sam[cnt][0].masks.xy):
-        #     mask = np.array(mask, np.int32)
-        #     depth = get_mask_depth_average(mask, depth_frame, num_samples=100)
-        #     X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D
         depth = get_depth_at(bbox_center[0], bbox_center[1])
         X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D          
-            # print(f"Center of mask: ({X}, {Y})")
         if class_name == "chair" and Z <= 4.2 and cnt == 0:
             obj_dict["chair_1"]["position"] = (X, Y, Z)
             obj_dict["chair_1"]["detected"] = True
-            
-        
-        # if class_name == "chair" and Z <= 4.5 and cnt == 1:
-        #     obj_dict["chair2"] = (X, Y, Z)
-        
-        # if class_name == "chair" and Z <= 4.5 and cnt == 2:
-        #     obj_dict["chair3"] = (X, Y, Z)
-        
-        # print(f"Detected {class_name} with confidence {conf:.2f} at [{x1}, {y1}, {x2}, {y2}]")
-        # print(f"Object {cnt} at ({X}, {Y}) has depth: {Z} meters")
-        
         cnt = cnt + 1
-        font = pygame.font.Font(None, 36)  # Create a font object (None means default font)
-        pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)  # Draw a rectangle
-        pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)  # Draw red point
+        
+        font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
+        pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                # Draw a rectangle
+        pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)          # Draw red point
         # print(f"Object: {class_name}")
         text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
-        screen.blit(text_surface, (x1, y1 - 40))  # Position the text just above the bounding box (adjust the offset as needed)
+        screen.blit(text_surface, (x1, y1 - 40))                                                        # Position the text just above the bounding box (adjust the offset as needed)
+    pygame.display.update()
         
-    # print("chair_1 detected: ", obj_dict["chair_1"]["detected"])
     if boxes is None or len(boxes) == 0:
         obj_dict["chair_1"]["detected"] = False
         print('boxes is None')
         return
-    pygame.display.update()
 
-
-    
-    
-    
 def imu_callback(msg: Imu):
     global base_pose
     base_pose = np.zeros(7)
@@ -231,16 +128,24 @@ def gt_twist_callback(msg):
     global base_twist
     base_twist = np.array([msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z,
                            msg.twist.angular.x, msg.twist.angular.y, msg.twist.angular.z])
-    
-    
+
 def gt_pose_callback(msg):
     global base_pose
     base_pose = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z,
                           msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z,
                           msg.pose.orientation.w])
-    
 
+bridge = CvBridge()
+model_det = YOLO('yolo12n.pt') 
+obj_dict = {"chair_1": {"position":(0.0, 0.0, 0.0), "detected": False}}
 
+pygame.init()
+screen = pygame.display.set_mode((1280, 720))
+pygame.display.set_caption('Detection')
+
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
 
 rospy.init_node('centauro_walk_srbd')
 rospy.sleep(1.)    
@@ -358,8 +263,6 @@ pub_pos = rospy.Publisher('object_positions', String, queue_size=10)
 
 
 while not rospy.is_shutdown():
-    # for obj_name, position in obj_dict.items():
-    #     print(f"{obj_name}: {position}")
     msg = json.dumps(obj_dict)
     pub_pos.publish(msg)
     rate.sleep()
