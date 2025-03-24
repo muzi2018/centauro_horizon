@@ -27,7 +27,8 @@ from std_msgs.msg import String
 import json
 
 update_flag = True
-
+frame = None
+depth_frame = None
 def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
     # Extract camera intrinsic parameters
     fx = intrinsic_matrix[0, 0]     # Focal length in x
@@ -58,8 +59,9 @@ def depth_callback(msg):
         depth_frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")  # Depth in millimeters
     except Exception as e:
         print(f"Error converting depth image: {e}")
-
+        
 def image_callback(msg):
+    global frame
     try:
         frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         frame = frame.copy() 
@@ -135,7 +137,106 @@ def gt_pose_callback(msg):
     base_pose = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z,
                           msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z,
                           msg.pose.orientation.w])
+rgb_img_list = []
+depth_img_list = []
+def update_list(img_list, new_frame):
+    """ Maintains only the last two frames in the list """
+    img_list.append(new_frame)
+    if len(img_list) > 2:
+        img_list.pop(0)
 
+
+def ori_evaluation(rgb_frame, depth_frame):
+    global rgb_img_list, depth_img_list
+    if rgb_frame is not None and depth_frame is not None:
+        rgb_image = rgb_frame
+        depth_image = depth_frame
+        depth_image = depth_image.astype(np.float32) * 0.001  # Convert depth from mm to meters
+
+        update_list(rgb_img_list, rgb_image)
+        update_list(depth_img_list, depth_image)
+        
+        focal_length_x = 924.2759399414062
+        focal_length_y = 924.2759399414062
+
+        center_x = 640.0
+        center_y = 360.0 
+        intrinsic_matrix = np.array([[focal_length_x, 0, center_x],                         # Replace with actual values
+                                    [0, focal_length_y, center_y],
+                                    [0, 0, 1]])
+        orb = cv2.ORB_create(nfeatures=500)
+        # Detect ORB keypoints and descriptors
+           
+
+        if len(rgb_img_list) == 2 and len(depth_img_list) == 2:
+            first_rgb_image = rgb_img_list[0]
+            second_rgb_image = rgb_img_list[1]
+            
+            first_depth_image = depth_img_list[0]
+            second_depth_image = depth_img_list[1]
+            
+            keypoints, descriptors = orb.detectAndCompute(first_rgb_image, None)
+            mask = None
+            prev_rgb_image = first_rgb_image
+            prev_depth_image = first_depth_image
+            
+            prev_keypoints = keypoints
+            prev_descriptors = descriptors     
+            
+            
+            next_keypoints, next_descriptors = orb.detectAndCompute(second_rgb_image, None)
+            bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+            matches = bf.match(prev_descriptors, next_descriptors)
+            matches = sorted(matches, key=lambda x: x.distance)
+            good_matches = matches[:50]
+
+            # Get corresponding points from the keypoints
+            prev_points = np.array([prev_keypoints[m.queryIdx].pt for m in good_matches], dtype=np.float32)
+            next_points = np.array([next_keypoints[m.trainIdx].pt for m in good_matches], dtype=np.float32)
+
+            # Now, we use the depth image to get 3D coordinates of these points
+            points_3D_prev = []
+            for pt in prev_points:
+                u, v = pt
+                depth = first_depth_image[int(v), int(u)]  # Get depth at the pixel location
+                if depth != 0:  # Avoid invalid depth points
+                    Z = depth / 1000.0  # Convert depth from mm to meters
+                    X = (u - center_x) * Z / focal_length_x
+                    Y = (v - center_y) * Z / focal_length_y
+                    points_3D_prev.append([X, Y, Z])
+
+            # Convert to numpy array
+            points_3D_prev = np.array(points_3D_prev)
+            points_2D_prev, _ = cv2.projectPoints(points_3D_prev, np.zeros((3,1)), np.zeros((3,1)), intrinsic_matrix, None)
+            points_2D_prev = points_2D_prev.reshape(-1, 2)  # Ensure shape (N, 2)
+            print("points_2D_prev shape:", points_2D_prev.shape)
+
+            # Do the same for the next frame's points (points_3D_next)
+            points_3D_next = []
+            for pt in next_points:
+                u, v = pt
+                depth = second_depth_image[int(v), int(u)]
+                if depth != 0:
+                    Z = depth / 1000.0
+                    X = (u - center_x) * Z / focal_length_x
+                    Y = (v - center_y) * Z / focal_length_y
+                    points_3D_next.append([X, Y, Z])
+
+            points_3D_next = np.array(points_3D_next)
+            points_2D_next, _ = cv2.projectPoints(points_3D_next, np.zeros((3,1)), np.zeros((3,1)), intrinsic_matrix, None)
+            points_2D_next = points_2D_prev.reshape(-1, 2)  # Ensure shape (N, 2)
+            print("points_3D_next shape:", points_3D_next.shape)
+
+            # Estimate camera motion between frames
+            # Use OpenCV's solvePnP to estimate rotation and translation
+            _, rvec, tvec = cv2.solvePnP(points_3D_prev, points_2D_next, intrinsic_matrix, distCoeffs=None)
+
+            # Convert rotation vector to rotation matrix
+            R, _ = cv2.Rodrigues(rvec)
+
+            # Print estimated rotation and translation
+            print("Rotation matrix:\n", R)
+            print("Translation vector:\n", tvec)
 
 
 
@@ -269,6 +370,9 @@ pub_pos = rospy.Publisher('object_positions', String, queue_size=10)
 while not rospy.is_shutdown():
     msg = json.dumps(obj_dict)
     pub_pos.publish(msg)
+
+    ori_evaluation(frame, depth_frame)
+
     rate.sleep()
 
 
