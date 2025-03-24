@@ -104,14 +104,15 @@ def image_callback(msg):
         if class_name == "chair" and Z <= 4.2 and cnt == 0:
             obj_dict["chair_1"]["position"] = (X, Y, Z)
             obj_dict["chair_1"]["detected"] = True
+            # print(f"Object: {class_name}")
+            font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
+            text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+            screen.blit(text_surface, (x1, y1 - 40))                                                        # Position the text just above the bounding box (adjust the offset as needed)
         cnt = cnt + 1
         
-        font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
         pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                # Draw a rectangle
         pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)          # Draw red point
-        # print(f"Object: {class_name}")
-        text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
-        screen.blit(text_surface, (x1, y1 - 40))                                                        # Position the text just above the bounding box (adjust the offset as needed)
+
     pygame.display.update()
         
     if boxes is None or len(boxes) == 0:
@@ -134,6 +135,9 @@ def gt_pose_callback(msg):
     base_pose = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z,
                           msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z,
                           msg.pose.orientation.w])
+
+
+
 
 bridge = CvBridge()
 model_det = YOLO('yolo12n.pt') 
