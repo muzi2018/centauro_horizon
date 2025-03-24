@@ -1,20 +1,19 @@
 # centauro_horizon
 
-## Perception
+## Use
 
-using YOLO
+### Detection
 
-1. Set Up Your RGB-D Camera in ROS
-   /camera/color/image_raw → RGB image
-   /camera/depth/image_raw → Depth image
-   /camera/depth/points → Point cloud
-2. Object Detection (RGB-Based)
-   sensor_msgs::Image
+start simulation: roslaunch centauro_horizon centauro_startup.launch
 
-/D435_head_camera/aligned_depth_to_color/image_raw -> msg is sensor_msgs/Image -> RGB image
+start control: xbot2-gui
 
-/D435_head_camera/color/image_raw -> Depth image
+start detection: roslaunch centauro_horizon centauro_perception.launch
 
-## Localization
+### Localization
 
-tutorial : https://www.youtube.com/watch?v=pxeU6HH5Gww
+roslaunch hdl_localization hdl_localization.launch
+
+### Navigation
+
+roslaunch centauro_ros_nav centauro_nav_exploration.launch
