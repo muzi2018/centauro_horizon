@@ -61,7 +61,7 @@ def depth_callback(msg):
         print(f"Error converting depth image: {e}")
         
 def image_callback(msg):
-    global frame
+    global frame, obj_dict
     try:
         frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         frame = frame.copy() 
@@ -104,6 +104,8 @@ def image_callback(msg):
         depth = get_depth_at(bbox_center[0], bbox_center[1])
         X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D          
         if class_name == "chair" and Z <= 4.5 and cnt == 0:
+            if "chair_1" not in obj_dict:
+                obj_dict["chair_1"] = {"position": (0.0, 0.0, 0.0), "detected": False}
             obj_dict["chair_1"]["position"] = (X, Y, Z)
             obj_dict["chair_1"]["detected"] = True
             # print(f"Object: {class_name}")
@@ -118,7 +120,8 @@ def image_callback(msg):
     pygame.display.update()
         
     if boxes is None or len(boxes) == 0:
-        obj_dict["chair_1"]["detected"] = False
+
+        obj_dict = {}
         print('boxes is None')
         return
 
@@ -149,7 +152,7 @@ def update_list(img_list, new_frame):
 
 bridge = CvBridge()
 model_det = YOLO('yolo12n.pt') 
-obj_dict = {"chair_1": {"position":(0.0, 0.0, 0.0), "detected": False}}
+obj_dict = {}
 
 pygame.init()
 screen = pygame.display.set_mode((1280, 720))
