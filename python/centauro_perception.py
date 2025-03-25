@@ -97,7 +97,7 @@ def choose_point_on_edge(edges, x1, y1):
     return None  # Return None if no valid point found
 
 
-
+global edge_x , edge_y
 
 def image_callback(msg):
     global frame, obj_dict
@@ -128,7 +128,7 @@ def image_callback(msg):
     intrinsic_matrix = np.array([[focal_length_x, 0, center_x],                         # Replace with actual values
                                  [0, focal_length_y, center_y],
                                  [0, 0, 1]])
-    confidence_threshold = 0.8    
+    confidence_threshold = 0.5    
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()                                           # Convert box tensor to list of coordinates
         bbox_center = np.array([(x1 + x2) / 2, (y1 + y2) / 2])
@@ -137,11 +137,11 @@ def image_callback(msg):
         cls = int(box.cls[0].item())
         class_name = model_det.names[cls]
 
-        if conf < confidence_threshold:
-            continue                                                                    # Skip this detection
+        # if conf < confidence_threshold:
+        #     continue                                                                    # Skip this detection
  
-        depth = get_depth_at(bbox_center[0], bbox_center[1])
-        X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D     
+        # depth = get_depth_at(bbox_center[0], bbox_center[1])
+        # X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D     
         
         # Apply edge detection on the detected chair region
         edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2))
@@ -155,10 +155,10 @@ def image_callback(msg):
               
      
         if class_name == "chair" and Z <= 4.5 and cnt == 0:
-            if "chair_1" not in obj_dict:
-                obj_dict["chair_1"] = {"position": (0.0, 0.0, 0.0), "detected": False}
-            obj_dict["chair_1"]["position"] = (X, Y, Z)
-            obj_dict["chair_1"]["detected"] = True
+            if "chair" not in obj_dict:
+                obj_dict["chair"] = {"position": (0.0, 0.0, 0.0), "detected": False}
+            obj_dict["chair"]["position"] = (X, Y, Z)
+            obj_dict["chair"]["detected"] = True
             # print(f"Object: {class_name}")
             font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
             text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
@@ -167,8 +167,8 @@ def image_callback(msg):
 
 
 
-        # pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                # Draw a rectangle
-        pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)          # Draw red point
+        pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                # Draw a rectangle
+        # pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)          # Draw red point
 
     pygame.display.update()
         
