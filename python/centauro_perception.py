@@ -59,7 +59,46 @@ def depth_callback(msg):
         depth_frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")  # Depth in millimeters
     except Exception as e:
         print(f"Error converting depth image: {e}")
-        
+
+
+
+def detect_edges(image, x1, y1, x2, y2):
+    """Detect edges within the bounding box using Canny edge detection."""
+    # Crop the region of interest (ROI) for the chair from the image
+    roi = image[y1:y2, x1:x2]
+
+    # Convert to grayscale for edge detection
+    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+
+    # Apply Canny edge detection
+    edges = cv2.Canny(gray, 100, 200)
+
+    # Return the edge-detected image
+    return edges
+
+
+def choose_point_on_edge(edges, x1, y1):
+    """Choose a point on the edge that has a depth less than 4.5 meters."""
+    global depth_frame
+    edge_points = np.argwhere(edges > 0)  # Get coordinates of edge points (non-zero values)
+    
+    if edge_points.size == 0:
+        return None
+    
+    # For each edge point, calculate the depth
+    for point in edge_points:
+        edge_y, edge_x = point
+        depth = get_depth_at(edge_x + x1, edge_y + y1)  # Get depth at the edge point
+
+        if depth is not None and depth < 4.5:
+            # Return the point (x, y) in the image coordinates
+            return (edge_x + x1, edge_y + y1, depth)
+
+    return None  # Return None if no valid point found
+
+
+
+
 def image_callback(msg):
     global frame, obj_dict
     try:
@@ -113,7 +152,15 @@ def image_callback(msg):
             text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
             screen.blit(text_surface, (x1, y1 - 40))                                                        # Position the text just above the bounding box (adjust the offset as needed)
         cnt = cnt + 1
-        
+
+        # Apply edge detection on the detected chair region
+        edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2))
+        # Choose a point on the edge with depth < 4.5 meters
+        point = choose_point_on_edge(edges, int(x1), int(y1))
+        if point is not None:
+            edge_x, edge_y, depth = point
+            pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green
+
         pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                # Draw a rectangle
         pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)          # Draw red point
 
