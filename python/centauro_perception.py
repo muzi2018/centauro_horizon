@@ -103,7 +103,7 @@ def image_callback(msg):
  
         depth = get_depth_at(bbox_center[0], bbox_center[1])
         X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D          
-        if class_name == "chair" and Z <= 4.2 and cnt == 0:
+        if class_name == "chair" and Z <= 4.5 and cnt == 0:
             obj_dict["chair_1"]["position"] = (X, Y, Z)
             obj_dict["chair_1"]["detected"] = True
             # print(f"Object: {class_name}")
@@ -172,7 +172,7 @@ if srdf == '':
     raise print('srdf not set')
 file_dir = rospkg.RosPack().get_path('centauro_horizon')
 
-rate = rospy.Rate(20)
+rate = rospy.Rate(60)
 
 '''
 Build ModelInterface and RobotStatePublisher
