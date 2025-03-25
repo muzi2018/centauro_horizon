@@ -141,7 +141,19 @@ def image_callback(msg):
             continue                                                                    # Skip this detection
  
         depth = get_depth_at(bbox_center[0], bbox_center[1])
-        X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D          
+        X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D     
+        
+        # Apply edge detection on the detected chair region
+        edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2))
+        # Choose a point on the edge with depth < 4.5 meters
+        point = choose_point_on_edge(edges, int(x1), int(y1))
+        if point is not None:
+            edge_x, edge_y, depth = point
+            pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green  
+        depth = get_depth_at(edge_x, edge_y)
+        X, Y, Z = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)  # Convert to 3D     
+              
+     
         if class_name == "chair" and Z <= 4.5 and cnt == 0:
             if "chair_1" not in obj_dict:
                 obj_dict["chair_1"] = {"position": (0.0, 0.0, 0.0), "detected": False}
@@ -153,15 +165,9 @@ def image_callback(msg):
             screen.blit(text_surface, (x1, y1 - 40))                                                        # Position the text just above the bounding box (adjust the offset as needed)
         cnt = cnt + 1
 
-        # Apply edge detection on the detected chair region
-        edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2))
-        # Choose a point on the edge with depth < 4.5 meters
-        point = choose_point_on_edge(edges, int(x1), int(y1))
-        if point is not None:
-            edge_x, edge_y, depth = point
-            pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green
 
-        pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                # Draw a rectangle
+
+        # pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                # Draw a rectangle
         pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)          # Draw red point
 
     pygame.display.update()
