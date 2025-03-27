@@ -96,7 +96,8 @@ def choose_point_on_edge(edges, x1, y1):
     return None  # Return None if no valid point found
 
 
-edge_x = 0, edge_y = 0
+edge_x = 0
+edge_y = 0
 
 def image_callback(msg):
     global frame, obj_dict, edge_x, edge_y
