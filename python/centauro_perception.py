@@ -78,7 +78,6 @@ def detect_edges(image, x1, y1, x2, y2):
 
 
 def choose_point_on_edge(edges, x1, y1):
-    """Choose a point on the edge that has a depth less than 4.5 meters."""
     global depth_frame
     edge_points = np.argwhere(edges > 0)  # Get coordinates of edge points (non-zero values)
     
@@ -97,10 +96,10 @@ def choose_point_on_edge(edges, x1, y1):
     return None  # Return None if no valid point found
 
 
-global edge_x , edge_y
+edge_x = 0, edge_y = 0
 
 def image_callback(msg):
-    global frame, obj_dict
+    global frame, obj_dict, edge_x, edge_y
     try:
         frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         frame = frame.copy() 
@@ -149,12 +148,13 @@ def image_callback(msg):
         point = choose_point_on_edge(edges, int(x1), int(y1))
         if point is not None:
             edge_x, edge_y, depth = point
+            print("edge point is not none ...")
             pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green  
         depth = get_depth_at(edge_x, edge_y)
         X, Y, Z = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)  # Convert to 3D     
               
      
-        if class_name == "chair" and Z <= 4.5 and cnt == 0:
+        if class_name == "chair" and cnt == 0:
             if "chair" not in obj_dict:
                 obj_dict["chair"] = {"position": (0.0, 0.0, 0.0), "detected": False}
             obj_dict["chair"]["position"] = (X, Y, Z)
