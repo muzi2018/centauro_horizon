@@ -25,6 +25,7 @@ from ultralytics import SAM
 import pygame
 from std_msgs.msg import String
 import json
+from scipy.spatial.transform import Rotation as R
 
 update_flag = True
 frame = None
@@ -115,6 +116,14 @@ def image_callback(msg):
     cnt = 0
     results_det = model_det(frame, verbose=False)                   # YOLO detection        
     detections = results_det[0]                                     # Get the first (and usually only) result from the list
+    
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    update_list(rgb_img_list, gray_frame)  # Keep last two frames
+
+    rotation_angles = None
+    if len(rgb_img_list) == 2:
+        rotation_angles = estimate_rotation(rgb_img_list[0], rgb_img_list[1])
+    print("rotation_angles: ", rotation_angles)
 
     boxes = detections.boxes                                        # Bounding boxes in format (x1, y1, x2, y2)
     probs = detections.probs                                        # Confidence scores for each detection
@@ -201,6 +210,61 @@ def update_list(img_list, new_frame):
     img_list.append(new_frame)
     if len(img_list) > 2:
         img_list.pop(0)
+
+def detect_features(image):
+    """Detect ORB keypoints and descriptors in an image."""
+    orb = cv2.ORB_create(nfeatures=500)
+    keypoints, descriptors = orb.detectAndCompute(image, None)
+    return keypoints, descriptors
+
+def match_features(des1, des2):
+    """Match features between two sets of descriptors using BFMatcher."""
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    matches = bf.match(des1, des2)
+    matches = sorted(matches, key=lambda x: x.distance)  # Sort by distance
+    return matches
+
+def estimate_rotation(img1, img2):
+    """Estimate rotation between two images using feature matching and homography."""
+    kp1, des1 = detect_features(img1)
+    kp2, des2 = detect_features(img2)
+    
+    if des1 is None or des2 is None:
+        print("No descriptors found!")
+        return None
+
+    matches = match_features(des1, des2)
+
+    if len(matches) < 10:
+        print("Not enough matches!")
+        return None
+
+    # Extract matched keypoints
+    src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
+    dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
+
+    # Compute homography matrix
+    H, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC)
+
+    if H is None:
+        print("Homography not found!")
+        return None
+
+    # Extract rotation component (first 2x2 part of H)
+    R_2x2 = H[:2, :2]
+
+    # Convert to full 3x3 rotation matrix
+    R_matrix = np.eye(3)  # Identity matrix
+    R_matrix[:2, :2] = R_2x2  # Insert 2x2 rotation matrix
+
+    # Ensure it is a valid rotation matrix
+    U, _, Vt = np.linalg.svd(R_matrix[:3, :3])  # SVD decomposition
+    R_matrix[:3, :3] = U @ Vt  # Reconstruct closest valid rotation matrix
+
+    # Convert rotation matrix to Euler angles
+    rotation = R.from_matrix(R_matrix).as_euler('xyz', degrees=True)
+
+    return rotation
 
 
 
