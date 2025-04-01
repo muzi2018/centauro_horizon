@@ -29,6 +29,19 @@ import json
 update_flag = True
 frame = None
 depth_frame = None
+
+focal_length_x = 924.2759399414062
+focal_length_y = 924.2759399414062
+
+center_x = 640.0
+center_y = 360.0
+
+intrinsic_matrix = np.array([[focal_length_x, 0, center_x],                         # Replace with actual values
+                            [0, focal_length_y, center_y],
+                            [0, 0, 1]])
+confidence_threshold = 0.5  
+
+
 def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
     # Extract camera intrinsic parameters
     fx = intrinsic_matrix[0, 0]     # Focal length in x
@@ -38,8 +51,12 @@ def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
     
     # Convert 2D pixel to 3D coordinates
     Z = depth  # depth in meters
+    # print("depth type: ", type(Z))
     X = (cx - cx_) * Z / fx
     Y = (cy - cy_) * Z / fy
+    # print("X: ", X)
+    # print("Y: ", Y)
+    
     return X, Y, Z
 
 def get_depth_at(x, y):
@@ -72,6 +89,7 @@ def detect_edges(image, x1, y1, x2, y2):
 
     # Apply Canny edge detection
     edges = cv2.Canny(gray, 100, 200)
+    # print("edges :", edges)
 
     # Return the edge-detected image
     return edges
@@ -80,17 +98,23 @@ def detect_edges(image, x1, y1, x2, y2):
 def choose_point_on_edge(edges, x1, y1):
     global depth_frame
     edge_points = np.argwhere(edges > 0)  # Get coordinates of edge points (non-zero values)
-    
+    # print("edge_points: ", edge_points)
     if edge_points.size == 0:
         return None
     
+    X1, Y1, _ = pixel_to_3d(x1, y1, 0, intrinsic_matrix)
+    # print("size = ", edge_points.size)
     # For each edge point, calculate the depth
     for point in edge_points:
         edge_y, edge_x = point
         depth = get_depth_at(edge_x + x1, edge_y + y1)  # Get depth at the edge point
+        Edge_x, Edge_y, _ = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)
 
-        if depth is not None and depth < 4.5:
+        if depth is not None and depth < 4.5 and Edge_y <= Y1 :
             # Return the point (x, y) in the image coordinates
+            # print("Edge_y = ", Edge_y)
+            # print("Y1 = ", Y1)
+            
             return (edge_x + x1, edge_y + y1, depth)
 
     return None  # Return None if no valid point found
@@ -98,9 +122,11 @@ def choose_point_on_edge(edges, x1, y1):
 
 edge_x = 0
 edge_y = 0
-
+X = 0
+Y = 0
+Z = 0
 def image_callback(msg):
-    global frame, obj_dict, edge_x, edge_y
+    global frame, obj_dict, edge_x, edge_y, X, Y, Z
     try:
         frame = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         frame = frame.copy() 
@@ -119,16 +145,7 @@ def image_callback(msg):
     boxes = detections.boxes                                        # Bounding boxes in format (x1, y1, x2, y2)
     probs = detections.probs                                        # Confidence scores for each detection
 
-    focal_length_x = 924.2759399414062
-    focal_length_y = 924.2759399414062
-
-    center_x = 640.0
-    center_y = 360.0
-
-    intrinsic_matrix = np.array([[focal_length_x, 0, center_x],                         # Replace with actual values
-                                 [0, focal_length_y, center_y],
-                                 [0, 0, 1]])
-    confidence_threshold = 0.5    
+  
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()                                           # Convert box tensor to list of coordinates
         bbox_center = np.array([(x1 + x2) / 2, (y1 + y2) / 2])
@@ -149,26 +166,44 @@ def image_callback(msg):
         point = choose_point_on_edge(edges, int(x1), int(y1))
         if point is not None:
             edge_x, edge_y, depth = point
-            print("edge point is not none ...")
-            pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green  
-        depth = get_depth_at(edge_x, edge_y)
-        X, Y, Z = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)  # Convert to 3D     
-              
+            
+            depth = get_depth_at(edge_x, edge_y)
+            X, Y, Z = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)  # Convert to 3D 
+            
+            # print("edge point is not none ...")
+            pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green 
+            # print(f"Object: {class_name}")
+            font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
+            text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+            screen.blit(text_surface, (x1, y1 - 40))                                                        # Position the text just above the bounding box (adjust the offset as needed)
+            pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                # Draw a rectangle 
+    
+            up_left_depth = get_depth_at(x1, y1)
+            up_left_X, up_left_Y, up_left_Z = pixel_to_3d(x1, y1, up_left_depth, intrinsic_matrix)  # Convert to 3D
+            
+            down_right_depth = get_depth_at(x2, y2)
+            down_right_X, down_right_Y, down_right_Z = pixel_to_3d(x2, y2, down_right_depth, intrinsic_matrix)  # Convert to 3D '
+            
+            pygame.draw.circle(screen, (0, 255, 0), (int(x1), int(y1)), 5)  # Draw the selected point in green 
+            text_surface = font.render(f"up_left:  ({up_left_X:.2f}, {up_left_Y:.2f}, {up_left_Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+            screen.blit(text_surface, (x1, y1))                                                        # Position the text just 
+            
+            pygame.draw.circle(screen, (0, 255, 0), (int(x2), int(y2)), 5)  # Draw the selected point in green 
+            text_surface = font.render(f"down_right: ({down_right_X:.2f}, {down_right_Y:.2f}, {down_right_Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+            screen.blit(text_surface, (x2, y2))                                                        # Position the text just 
+            
      
         if class_name == "chair" and cnt == 0:
             if "chair" not in obj_dict:
                 obj_dict["chair"] = {"position": (0.0, 0.0, 0.0), "detected": False}
             obj_dict["chair"]["position"] = (X, Y, Z)
             obj_dict["chair"]["detected"] = True
-            # print(f"Object: {class_name}")
-            font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
-            text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
-            screen.blit(text_surface, (x1, y1 - 40))                                                        # Position the text just above the bounding box (adjust the offset as needed)
+
         cnt = cnt + 1
 
 
 
-        pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                # Draw a rectangle
+        
         # pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)          # Draw red point
 
     pygame.display.update()
