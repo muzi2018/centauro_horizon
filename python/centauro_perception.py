@@ -100,24 +100,27 @@ def choose_points_on_edge(edges, x1, y1):
     edge_points = np.argwhere(edges > 0)  # Get coordinates of edge points (non-zero values)
     
     if edge_points.size == 0:
-        return None  # No edges found
+        return [], []  # No edges found
 
-    valid_points = []  # List to store all valid edge points
+    valid_points_pixel = [] 
+    valid_points_realworld = [] 
 
     X1, Y1, _ = pixel_to_3d(x1, y1, 0, intrinsic_matrix)
 
     for point in edge_points:
         edge_y, edge_x = point
         depth = get_depth_at(edge_x + x1, edge_y + y1)  # Get depth at the edge point
-        
+        Edge_x, Edge_y, Depth = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)
+
         if depth is not None and depth < 4.5:
-            Edge_x, Edge_y, _ = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)
-
             # Append the valid edge point (image coordinates + depth)
-            valid_points.append((edge_x + x1, edge_y + y1, depth))
-    print("Total valid edge points:", len(valid_points))  # Print the size of valid_points
+            valid_points_pixel.append((edge_x + x1, edge_y + y1, depth))
+            valid_points_realworld.append((Edge_x, Edge_y, Depth))
+    
+    print("Total valid edge points:", len(valid_points_pixel))  # Print the size of valid_points
 
-    return valid_points if valid_points else None  # Return the list or None if empty
+    return valid_points_pixel, valid_points_realworld  # Return both lists
+
 
 
 
@@ -164,10 +167,10 @@ def image_callback(msg):
         # Apply edge detection on the detected chair region
         edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2))
         # Choose a point on the edge with depth < 4.5 meters
-        points = choose_points_on_edge(edges, int(x1), int(y1))
-        if points is not None:
-            for point in points:
-                edge_x, edge_y, depth = point
+        points_pixel, points_realworld= choose_points_on_edge(edges, int(x1), int(y1)) 
+        if points_pixel is not None:
+            for point in points_pixel:
+                edge_x, edge_y, depth = point # pixel points for edge_x, edge_y, real distance for depth
                 # depth = get_depth_at(edge_x, edge_y)
                 # X, Y, Z = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)  # Convert to 3D 
                 pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 1)  # Draw the selected point in green 
