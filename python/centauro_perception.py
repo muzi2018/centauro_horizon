@@ -94,7 +94,7 @@ def detect_edges(image, x1, y1, x2, y2):
     # Return the edge-detected image
     return edges
 
-
+# points_list = []
 def choose_point_on_edge(edges, x1, y1):
     global depth_frame
     edge_points = np.argwhere(edges > 0)  # Get coordinates of edge points (non-zero values)
@@ -185,12 +185,12 @@ def image_callback(msg):
             down_right_X, down_right_Y, down_right_Z = pixel_to_3d(x2, y2, down_right_depth, intrinsic_matrix)  # Convert to 3D '
             
             pygame.draw.circle(screen, (0, 255, 0), (int(x1), int(y1)), 5)  # Draw the selected point in green 
-            text_surface = font.render(f"up_left:  ({up_left_X:.2f}, {up_left_Y:.2f}, {up_left_Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
-            screen.blit(text_surface, (x1, y1))                                                        # Position the text just 
+            # text_surface = font.render(f"up_left:  ({up_left_X:.2f}, {up_left_Y:.2f}, {up_left_Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+            # screen.blit(text_surface, (x1, y1))                                                        # Position the text just 
             
             pygame.draw.circle(screen, (0, 255, 0), (int(x2), int(y2)), 5)  # Draw the selected point in green 
-            text_surface = font.render(f"down_right: ({down_right_X:.2f}, {down_right_Y:.2f}, {down_right_Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
-            screen.blit(text_surface, (x2, y2))                                                        # Position the text just 
+            # text_surface = font.render(f"down_right: ({down_right_X:.2f}, {down_right_Y:.2f}, {down_right_Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+            # screen.blit(text_surface, (x2, y2))                                                        # Position the text just 
             
      
         if class_name == "chair" and cnt == 0:
