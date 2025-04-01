@@ -61,29 +61,41 @@ def image_callback2(msg):
         
 def compute_orientation(points_3D):
     """
-    Estimate the chair's orientation using PCA.
-    points_3D: List of (X, Y, Z) points.
+    Compute object orientation using PCA.
+    
+    Args:
+        points_3D: List of (X, Y, Z) points
+        
+    Returns:
+        tuple: (euler_angles, quaternion)
     """
+    if len(points_3D) < 3:
+        raise ValueError("Need at least 3 points for orientation calculation")
+        
     points = np.array(points_3D)
-
-
     # Center the points
     centroid = np.mean(points, axis=0)
     centered_points = points - centroid
-    # print("centered_points shape: ", centered_points.shape) 4 x 3
-
-    # Compute PCA (Singular Value Decomposition)
+    
+    # Compute PCA using SVD
     _, _, vh = np.linalg.svd(centered_points)
-    normal_vector = vh[1, :]  # The third principal axis
-
-    # Convert normal to Euler angles or quaternion
-    r = R.from_matrix(np.vstack([vh[0], vh[1], normal_vector]).T)
+    
+    # The principal axes are the rows of vh
+    # vh[0] points along the major axis (orientation)
+    # vh[1] points along the minor axis
+    # vh[2] is the normal vector to the plane of variation
+    
+    # Create rotation matrix from principal components
+    rotation_matrix = np.vstack([vh[0], vh[1], vh[2]]).T
+    
+    # Convert to rotation object
+    r = R.from_matrix(rotation_matrix)
+    
+    # Get Euler angles and quaternion
     euler_angles = r.as_euler('xyz', degrees=True)
     quaternion = r.as_quat()
-
+    
     return euler_angles, quaternion
-
-
 
 def detect_chair_orientation():
     global frame1, frame2, depth_frame1, depth_frame2, depth_frame
@@ -470,10 +482,24 @@ pub_pos = rospy.Publisher('object_positions', String, queue_size=10)
 # rospy.spin()
 
 
+points_3D = [
+    [0.0, 0.0, 0.0],  # Point 1
+    [0.0, 1.0, 0.0],  # Point 2
+    [0.0, 0.0, 1.0]   # Point 3
+]
+
 while not rospy.is_shutdown():
-    msg = json.dumps(obj_dict)
-    pub_pos.publish(msg)
-    detect_chair_orientation()
+    # msg = json.dumps(obj_dict)
+    # pub_pos.publish(msg)
+    # detect_chair_orientation()
+
+
+    try:
+        euler_angles, quaternion = compute_orientation(points_3D)
+        print(f"Orientation (Euler angles): {euler_angles}")
+        print(f"Orientation (Quaternion): {quaternion}")
+    except ValueError as e:
+        print(f"Error: {e}")
 
     rate.sleep()
 
