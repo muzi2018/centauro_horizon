@@ -117,9 +117,10 @@ def choose_points_on_edge(edges, x1, y1):
             valid_points_pixel.append((edge_x + x1, edge_y + y1, depth))
             valid_points_realworld.append((Edge_x, Edge_y, Depth))
     
-    print("Total valid edge points:", len(valid_points_pixel))  # Print the size of valid_points
+    # print("Total valid edge points:", len(valid_points_pixel))  # Print the size of valid_points
 
     return valid_points_pixel, valid_points_realworld  # Return both lists
+
 
 
 
@@ -168,12 +169,22 @@ def image_callback(msg):
         edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2))
         # Choose a point on the edge with depth < 4.5 meters
         points_pixel, points_realworld= choose_points_on_edge(edges, int(x1), int(y1)) 
+        points_pixel = np.array(points_pixel)
+
+
+
         if points_pixel is not None:
+            print("points_pixel shape: ", points_pixel.shape)
+            min_y_index = np.argmin(points_pixel[:, 1])
+            
+            min_y_point = points_pixel[min_y_index]
+            
+            pygame.draw.circle(screen, (255, 0, 0), (int(min_y_point[0]), int(min_y_point[1])), 5)  
             for point in points_pixel:
-                edge_x, edge_y, depth = point # pixel points for edge_x, edge_y, real distance for depth
+                # edge_x, edge_y, depth = point # pixel points for edge_x, edge_y, real distance for depth
                 # depth = get_depth_at(edge_x, edge_y)
                 # X, Y, Z = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)  # Convert to 3D 
-                pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 1)  # Draw the selected point in green 
+                # pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 1)  # Draw the selected point in green 
                 
                 pass
             
