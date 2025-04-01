@@ -25,6 +25,104 @@ from ultralytics import SAM
 import pygame
 from std_msgs.msg import String
 import json
+from scipy.spatial.transform import Rotation as R
+
+# Store frames from both cameras
+frame1, frame2 = None, None
+depth_frame1, depth_frame2 = None, None
+def depth_callback1(msg):
+    global depth_frame1
+    try:
+        depth_frame1 = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+    except Exception as e:
+        print(f"Error in depth_callback1: {e}")
+        
+def depth_callback2(msg):
+    global depth_frame2
+    try:
+        depth_frame2 = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+    except Exception as e:
+        print(f"Error in depth_callback2: {e}")
+
+def image_callback1(msg):
+    global frame1
+    try:
+        frame1 = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+    except Exception as e:
+        print(f"Error in image_callback1: {e}")
+
+def image_callback2(msg):
+    global frame2
+    try:
+        frame2 = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+    except Exception as e:
+        print(f"Error in image_callback2: {e}")
+
+        
+def compute_orientation(points_3D):
+    """
+    Estimate the chair's orientation using PCA.
+    points_3D: List of (X, Y, Z) points.
+    """
+    points = np.array(points_3D)
+
+    # Center the points
+    centroid = np.mean(points, axis=0)
+    centered_points = points - centroid
+
+    # Compute PCA (Singular Value Decomposition)
+    _, _, vh = np.linalg.svd(centered_points)
+    normal_vector = vh[2, :]  # The third principal axis
+
+    # Convert normal to Euler angles or quaternion
+    r = R.from_matrix(np.vstack([vh[0], vh[1], normal_vector]).T)
+    euler_angles = r.as_euler('xyz', degrees=True)
+    quaternion = r.as_quat()
+
+    return euler_angles, quaternion
+
+
+
+def detect_chair_orientation():
+    global frame1, frame2, depth_frame1, depth_frame2, depth_frame
+
+    if frame1 is None or frame2 is None or depth_frame1 is None or depth_frame2 is None:
+        return
+
+    # Run YOLO detection on both images
+    results1 = model_det(frame1)
+    results2 = model_det(frame2)
+    
+
+    # Process first camera
+    for box in results1[0].boxes:
+        depth_frame = depth_frame1
+        # print("detect_chair_orientation box ...")
+        x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+        class_name = model_det.names[int(box.cls[0].item())]
+        if class_name != "chair":
+            continue
+
+        # Compute 3D points for the chair
+        points_3D = []
+        for px, py in [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]:
+            depth = get_depth_at(px, py)
+            # print("depth = ", depth)
+            if depth:
+                points_3D.append(pixel_to_3d(px, py, depth, intrinsic_matrix))
+
+        if len(points_3D) >= 3:
+            euler, quat = compute_orientation(points_3D)
+            print(f"Chair Orientation (Euler): {euler}")
+            print(f"Chair Orientation (Quaternion): {quat}")
+
+            return euler, quat  # Use in ROS topic publishing
+    return None, None
+
+
+
+
+
 
 update_flag = True
 frame = None
@@ -360,16 +458,20 @@ else:
     base_twist = np.zeros(6)
     
 
-rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback) 
-rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, depth_callback) 
-pub_pos = rospy.Publisher('object_positions', String, queue_size=10)
+# ROS Subscribers for two cameras
+rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback1)
+rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, depth_callback1)
+rospy.Subscriber("/D435i_camera2/color/image_raw", Image, image_callback2)
+rospy.Subscriber("/D435i_camera2/aligned_depth_to_color/image_raw", Image, depth_callback2)
 
+pub_pos = rospy.Publisher('object_positions', String, queue_size=10)
+# rospy.spin()
 
 
 while not rospy.is_shutdown():
     msg = json.dumps(obj_dict)
     pub_pos.publish(msg)
-
+    detect_chair_orientation()
 
     rate.sleep()
 
