@@ -66,13 +66,15 @@ def compute_orientation(points_3D):
     """
     points = np.array(points_3D)
 
+
     # Center the points
     centroid = np.mean(points, axis=0)
     centered_points = points - centroid
+    # print("centered_points shape: ", centered_points.shape) 4 x 3
 
     # Compute PCA (Singular Value Decomposition)
     _, _, vh = np.linalg.svd(centered_points)
-    normal_vector = vh[2, :]  # The third principal axis
+    normal_vector = vh[1, :]  # The third principal axis
 
     # Convert normal to Euler angles or quaternion
     r = R.from_matrix(np.vstack([vh[0], vh[1], normal_vector]).T)
