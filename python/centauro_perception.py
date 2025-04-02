@@ -176,10 +176,16 @@ def image_callback(msg):
         if points_pixel is not None:
             print("points_pixel shape: ", points_pixel.shape)
             min_y_index = np.argmin(points_pixel[:, 1])
-            
             min_y_point = points_pixel[min_y_index]
-            
             pygame.draw.circle(screen, (255, 0, 0), (int(min_y_point[0]), int(min_y_point[1])), 5)  
+            depth = get_depth_at(min_y_point[0], min_y_point[1])
+            X, Y, Z = pixel_to_3d(min_y_point[0], min_y_point[1], depth, intrinsic_matrix)  # Convert to 3D 
+            font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
+            text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+            screen.blit(text_surface, (min_y_point[0], min_y_point[1] - 40))                                                        # Position the text just above the bounding box (adjust the offset as needed)
+
+            
+
             for point in points_pixel:
                 # edge_x, edge_y, depth = point # pixel points for edge_x, edge_y, real distance for depth
                 # depth = get_depth_at(edge_x, edge_y)
