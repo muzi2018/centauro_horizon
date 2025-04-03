@@ -158,124 +158,121 @@ def image_callback(msg):
 
     cnt = 0
     results_det = model_det(frame, verbose=False)                   # YOLO detection       
-    results_sam = model_sam.predict(frame, verbose=False)
+    results_ori = model_ori(frame, verbose=False)
+    for result in results_ori:
+        xywhr = result.keypoints.xy  # center-x, center-y, width, height, angle (radians)
+        xyxyxyxy = result.obb.xyxyxyxy  # polygon format with 4-points
+        names = [result.names[cls.item()] for cls in result.obb.cls.int()]  # class name of each box
+        confs = result.obb.conf  # confidence score of each box
+         
+    detections = results_det[0]                                     # Get the first (and usually only) result from the list
+
+    boxes = detections.boxes                                        # Bounding boxes in format (x1, y1, x2, y2)
+    probs = detections.probs                                        # Confidence scores for each detection
+
+    results_sam = []
+    for box in boxes:
+        x1, y1, x2, y2 = box.xyxy[0].tolist()                                           # Convert box tensor to list of coordinates
+        bbox_center = np.array([(x1 + x2) / 2, (y1 + y2) / 2])
+        
+        conf = box.conf[0].item()
+        cls = int(box.cls[0].item())
+        class_name = model_det.names[cls]
+
+        if conf < confidence_threshold:
+            continue                                                                    # Skip this detection
  
-    for result in results_sam:
-        boxes = result.masks
-        print("mask boxes shape", boxes.shape)
-        result.show()
-    
-    
-    
-    
-     
-    # detections = results_det[0]                                     # Get the first (and usually only) result from the list
-
-    # boxes = detections.boxes                                        # Bounding boxes in format (x1, y1, x2, y2)
-    # probs = detections.probs                                        # Confidence scores for each detection
-
-  
-    # for box in boxes:
-    #     x1, y1, x2, y2 = box.xyxy[0].tolist()                                           # Convert box tensor to list of coordinates
-    #     bbox_center = np.array([(x1 + x2) / 2, (y1 + y2) / 2])
+        # depth = get_depth_at(bbox_center[0], bbox_center[1])
+        # X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D     
         
-    #     conf = box.conf[0].item()
-    #     cls = int(box.cls[0].item())
-    #     class_name = model_det.names[cls]
-
-    #     if conf < confidence_threshold:
-    #         continue                                                                    # Skip this detection
- 
-    #     # depth = get_depth_at(bbox_center[0], bbox_center[1])
-    #     # X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D     
+        # Apply edge detection on the detected chair region
+        edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2))
+        # Choose a point on the edge with depth < 4.5 meters
+        points_pixel, points_realworld= choose_points_on_edge(edges, int(x1), int(y1)) 
+        points_pixel = np.array(points_pixel)
+        points_realworld = np.array(points_realworld)
         
-    #     # Apply edge detection on the detected chair region
-    #     edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2))
-    #     # Choose a point on the edge with depth < 4.5 meters
-    #     points_pixel, points_realworld= choose_points_on_edge(edges, int(x1), int(y1)) 
-    #     points_pixel = np.array(points_pixel)
-    #     points_realworld = np.array(points_realworld)
-        
-    #     if class_name == "chair":
-    #         if points_pixel is not None:
-    #             min_y_index = np.argmin(points_realworld[:, 1])
-    #             min_y_point = points_pixel[min_y_index]
-    #             pygame.draw.circle(screen, (255, 0, 0), (int(min_y_point[0]), int(min_y_point[1])), 5)  
-    #             depth = get_depth_at(min_y_point[0], min_y_point[1])
-    #             X, Y, Z = pixel_to_3d(min_y_point[0], min_y_point[1], depth, intrinsic_matrix)  # Convert to 3D 
-    #             # font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
-    #             # text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
-    #             # screen.blit(text_surface, (min_y_point[0], min_y_point[1] - 40))                                # Position the text just above the bounding box (adjust the offset as needed)
+        if class_name == "chair":
+            
+            if points_pixel is not None:
+                min_y_index = np.argmin(points_realworld[:, 1])
+                min_y_point = points_pixel[min_y_index]
+                pygame.draw.circle(screen, (255, 0, 0), (int(min_y_point[0]), int(min_y_point[1])), 5)  
+                depth = get_depth_at(min_y_point[0], min_y_point[1])
+                X, Y, Z = pixel_to_3d(min_y_point[0], min_y_point[1], depth, intrinsic_matrix)  # Convert to 3D 
+                # font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
+                # text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+                # screen.blit(text_surface, (min_y_point[0], min_y_point[1] - 40))                                # Position the text just above the bounding box (adjust the offset as needed)
 
-    #             # print("min_y_point : ", X, ",", Y)
-    #             points_pix_list = np.array([[1,2,3],
-    #                                [4,5,6],
-    #                                [7,8,9]])
-    #             points_world_list = [[0.1,0.2,0.3],
-    #                                [0.4,0.5,0.6],
-    #                                [0.7,0.8,0.9]]
-    #             min_y_point2 = find_nearest_y_point(points_pix_list, points_world_list, 0.21)
+                # print("min_y_point : ", X, ",", Y)
+                points_pix_list = np.array([[1,2,3],
+                                   [4,5,6],
+                                   [7,8,9]])
+                points_world_list = [[0.1,0.2,0.3],
+                                   [0.4,0.5,0.6],
+                                   [0.7,0.8,0.9]]
+                min_y_point2 = find_nearest_y_point(points_pix_list, points_world_list, 0.21)
                 
-    #             pygame.draw.circle(screen, (255, 0, 0), (int(min_y_point2[0]), int(min_y_point2[1])), 5)  
-    #             # depth = get_depth_at(min_y_point2[0], min_y_point2[1])
-    #             # X, Y, Z = pixel_to_3d(min_y_point2[0], min_y_point2[1], depth, intrinsic_matrix)  # Convert to 3D 
-    #             # font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
-    #             # text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
-    #             # screen.blit(text_surface, (min_y_point2[0], min_y_point2[1] - 40))                                # Position the text just above the bounding box (adjust the offset as needed)
+                pygame.draw.circle(screen, (255, 0, 0), (int(min_y_point2[0]), int(min_y_point2[1])), 5)  
+                # depth = get_depth_at(min_y_point2[0], min_y_point2[1])
+                # X, Y, Z = pixel_to_3d(min_y_point2[0], min_y_point2[1], depth, intrinsic_matrix)  # Convert to 3D 
+                # font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
+                # text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+                # screen.blit(text_surface, (min_y_point2[0], min_y_point2[1] - 40))                                # Position the text just above the bounding box (adjust the offset as needed)
                
 
 
-    #             for point in points_pixel:
-    #                 edge_x, edge_y, depth = point # pixel points for edge_x, edge_y, real distance for depth
-    #                 depth = get_depth_at(edge_x, edge_y)
-    #                 X, Y, Z = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)  # Convert to 3D 
-    #                 pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 1)  # Draw the selected point in green 
+                for point in points_pixel:
+                    edge_x, edge_y, depth = point # pixel points for edge_x, edge_y, real distance for depth
+                    depth = get_depth_at(edge_x, edge_y)
+                    X, Y, Z = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)  # Convert to 3D 
+                    pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 1)  # Draw the selected point in green 
                     
-    #                 pass
+                    pass
                 
                 
-    #             # # print("edge point is not none ...")
-    #             # # print(f"Object: {class_name}")
-    #             # font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
-    #             # text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
-    #             # screen.blit(text_surface, (x1, y1 - 40))                                                        # Position the text just above the bounding box (adjust the offset as needed)
-    #             # pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                # Draw a rectangle 
+                # # print("edge point is not none ...")
+                # # print(f"Object: {class_name}")
+                # font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
+                # text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+                # screen.blit(text_surface, (x1, y1 - 40))                                                        # Position the text just above the bounding box (adjust the offset as needed)
+                # pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                # Draw a rectangle 
         
-    #             # up_left_depth = get_depth_at(x1, y1)
-    #             # up_left_X, up_left_Y, up_left_Z = pixel_to_3d(x1, y1, up_left_depth, intrinsic_matrix)  # Convert to 3D
+                # up_left_depth = get_depth_at(x1, y1)
+                # up_left_X, up_left_Y, up_left_Z = pixel_to_3d(x1, y1, up_left_depth, intrinsic_matrix)  # Convert to 3D
                 
-    #             # down_right_depth = get_depth_at(x2, y2)
-    #             # down_right_X, down_right_Y, down_right_Z = pixel_to_3d(x2, y2, down_right_depth, intrinsic_matrix)  # Convert to 3D '
+                # down_right_depth = get_depth_at(x2, y2)
+                # down_right_X, down_right_Y, down_right_Z = pixel_to_3d(x2, y2, down_right_depth, intrinsic_matrix)  # Convert to 3D '
                 
-    #             # pygame.draw.circle(screen, (0, 255, 0), (int(x1), int(y1)), 5)  # Draw the selected point in green 
-    #             # # text_surface = font.render(f"up_left:  ({up_left_X:.2f}, {up_left_Y:.2f}, {up_left_Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
-    #             # # screen.blit(text_surface, (x1, y1))                                                        # Position the text just 
+                # pygame.draw.circle(screen, (0, 255, 0), (int(x1), int(y1)), 5)  # Draw the selected point in green 
+                # # text_surface = font.render(f"up_left:  ({up_left_X:.2f}, {up_left_Y:.2f}, {up_left_Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+                # # screen.blit(text_surface, (x1, y1))                                                        # Position the text just 
                 
-    #             # pygame.draw.circle(screen, (0, 255, 0), (int(x2), int(y2)), 5)  # Draw the selected point in green 
-    #             # # text_surface = font.render(f"down_right: ({down_right_X:.2f}, {down_right_Y:.2f}, {down_right_Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
-    #             # # screen.blit(text_surface, (x2, y2))                                                        # Position the text just 
+                # pygame.draw.circle(screen, (0, 255, 0), (int(x2), int(y2)), 5)  # Draw the selected point in green 
+                # # text_surface = font.render(f"down_right: ({down_right_X:.2f}, {down_right_Y:.2f}, {down_right_Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
+                # # screen.blit(text_surface, (x2, y2))                                                        # Position the text just 
                 
         
-    #         # if class_name == "chair" and cnt == 0:
-    #         #     if "chair" not in obj_dict:
-    #         #         obj_dict["chair"] = {"position": (0.0, 0.0, 0.0), "detected": False}
-    #         #     obj_dict["chair"]["position"] = (X, Y, Z)
-    #         #     obj_dict["chair"]["detected"] = True
+            # if class_name == "chair" and cnt == 0:
+            #     if "chair" not in obj_dict:
+            #         obj_dict["chair"] = {"position": (0.0, 0.0, 0.0), "detected": False}
+            #     obj_dict["chair"]["position"] = (X, Y, Z)
+            #     obj_dict["chair"]["detected"] = True
 
-    #         # cnt = cnt + 1
+            # cnt = cnt + 1
 
 
 
             
-    #         # pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)          # Draw red point
+            # pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)          # Draw red point
 
-    # pygame.display.update()
+    pygame.display.update()
         
-    # if boxes is None or len(boxes) == 0:
+    if boxes is None or len(boxes) == 0:
 
-    #     obj_dict = {}
-    #     print('boxes is None')
-    #     return
+        obj_dict = {}
+        print('boxes is None')
+        return
 
 def imu_callback(msg: Imu):
     global base_pose
@@ -305,7 +302,7 @@ def update_list(img_list, new_frame):
 bridge = CvBridge()
 model_det = YOLO('yolo12n.pt') 
 model_sam = SAM("sam_b.pt")
-
+model_ori = YOLO("yolo11n-obb.pt")
 
 
 obj_dict = {}
