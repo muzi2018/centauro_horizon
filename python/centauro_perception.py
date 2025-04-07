@@ -192,20 +192,35 @@ def image_callback(msg):
                 pygame.draw.circle(screen, (255, 0, 0), (int(min_y_point[0]), int(min_y_point[1])), 5)  
                 depth = get_depth_at(min_y_point[0], min_y_point[1])
                 X, Y, Z = pixel_to_3d(min_y_point[0], min_y_point[1], depth, intrinsic_matrix)  # Convert to 3D 
+                
+                # max_x_index = np.argmax(points_realworld[:, 0])
+                # max_x_point = points_pixel[max_x_index]
+                # pygame.draw.circle(screen, (255, 0, 0), (int(max_x_point[0]), int(min_y_point[1])), 5)  
+                # depth = get_depth_at(max_x_point[0], max_x_point[1])
+                # X, Y, Z = pixel_to_3d(max_x_point[0], max_x_point[1], depth, intrinsic_matrix)  # Convert to 3D 
+                
+                # max_y_index = np.argmax(points_realworld[:, 1])
+                # max_y_point = points_pixel[max_y_index]
+                # pygame.draw.circle(screen, (255, 0, 0), (int(max_y_point[0]), int(max_y_point[1])), 5)  
+                # depth = get_depth_at(max_y_point[0], max_y_point[1])
+                # X, Y, Z = pixel_to_3d(max_y_point[0], max_y_point[1], depth, intrinsic_matrix)  # Convert to 3D 
+                
+                
                 # font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
                 # text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
                 # screen.blit(text_surface, (min_y_point[0], min_y_point[1] - 40))                                # Position the text just above the bounding box (adjust the offset as needed)
 
                 # print("min_y_point : ", X, ",", Y)
-                points_pix_list = np.array([[1,2,3],
-                                   [4,5,6],
-                                   [7,8,9]])
-                points_world_list = [[0.1,0.2,0.3],
-                                   [0.4,0.5,0.6],
-                                   [0.7,0.8,0.9]]
-                min_y_point2 = find_nearest_y_point(points_pix_list, points_world_list, 0.21)
+                # points_pix_list = np.array([[1,2,3],
+                #                    [4,5,6],
+                #                    [7,8,9]])
+                # points_world_list = [[0.1,0.2,0.3],
+                #                    [0.4,0.5,0.6],
+                #                    [0.7,0.8,0.9]]
                 
-                pygame.draw.circle(screen, (255, 0, 0), (int(min_y_point2[0]), int(min_y_point2[1])), 5)  
+                # min_y_point2 = find_nearest_y_point(points_pix_list, points_world_list, 0.21)
+                # pygame.draw.circle(screen, (255, 0, 0), (int(min_y_point2[0]), int(min_y_point2[1])), 5)  
+                
                 # depth = get_depth_at(min_y_point2[0], min_y_point2[1])
                 # X, Y, Z = pixel_to_3d(min_y_point2[0], min_y_point2[1], depth, intrinsic_matrix)  # Convert to 3D 
                 # font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
