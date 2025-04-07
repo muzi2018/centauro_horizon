@@ -39,7 +39,7 @@ center_y = 360.0
 intrinsic_matrix = np.array([[focal_length_x, 0, center_x],                         # Replace with actual values
                             [0, focal_length_y, center_y],
                             [0, 0, 1]])
-confidence_threshold = 0.82  
+confidence_threshold = 0.7  
 
 
 def pixel_to_3d(cx, cy, depth, intrinsic_matrix):
