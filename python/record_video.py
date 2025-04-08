@@ -24,6 +24,7 @@ def save_camera_pose(pose):
     try:
         position = np.array([pose.position.x, pose.position.y, pose.position.z])
         quaternion = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
+        print("camera position: ", position)
         rotation_matrix = quaternion_matrix(quaternion)[:3, :3]
         transformation_matrix = np.eye(4)
         transformation_matrix[:3, :3] = rotation_matrix
@@ -36,7 +37,6 @@ def save_camera_pose(pose):
     except Exception as e:
         rospy.logerr(f"Error writing to camera_poses.txt: {e}")
     rate.sleep()  # Sleep to control callback rate
-
 
 
 
