@@ -25,6 +25,10 @@ from ultralytics import SAM
 import pygame
 from std_msgs.msg import String
 import json
+from apriltag_ros.msg import AprilTagDetectionArray
+import tf
+
+
 
 update_flag = True
 frame = None
@@ -98,6 +102,29 @@ def choose_point_on_edge(edges, x1, y1):
 
 edge_x = 0
 edge_y = 0
+def tag_detections_callback(msg):
+    if not msg.detections:
+        rospy.loginfo("No AprilTags detected.")
+        return
+
+    for detection in msg.detections:
+        tag_id = detection.id[0]
+        pose = detection.pose.pose.pose  # geometry_msgs/Pose
+        
+        # Extract position (optional, for completeness)
+        position = pose.position
+        rospy.loginfo(f"Detected AprilTag ID: {tag_id}")
+        rospy.loginfo(f"Position: ({position.x:.2f}, {position.y:.2f}, {position.z:.2f})")
+
+        # Extract orientation (quaternion)
+        orientation = pose.orientation
+        rospy.loginfo(f"Orientation (Quaternion): ({orientation.x:.2f}, {orientation.y:.2f}, {orientation.z:.2f}, {orientation.w:.2f})")
+        
+        # Optionally, convert the quaternion to Euler angles (pitch, yaw, roll)
+        euler_angles = tf.transformations.euler_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
+        rospy.loginfo(f"Orientation (Euler angles): Roll = {euler_angles[0]:.2f}, Pitch = {euler_angles[1]:.2f}, Yaw = {euler_angles[2]:.2f}")
+
+
 
 def image_callback(msg):
     global frame, obj_dict, edge_x, edge_y
@@ -328,6 +355,7 @@ else:
 rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback) 
 rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, depth_callback) 
 pub_pos = rospy.Publisher('object_positions', String, queue_size=10)
+rospy.Subscriber("/tag_detections", AprilTagDetectionArray, tag_detections_callback)
 
 
 
