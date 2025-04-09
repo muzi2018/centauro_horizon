@@ -27,6 +27,7 @@ from std_msgs.msg import String
 import json
 from apriltag_ros.msg import AprilTagDetectionArray
 import tf
+from nav_msgs.msg import OccupancyGrid
 
 
 
@@ -156,6 +157,7 @@ def image_callback(msg):
                                  [0, focal_length_y, center_y],
                                  [0, 0, 1]])
     confidence_threshold = 0.5    
+    chair_buff ={}
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()                                           # Convert box tensor to list of coordinates
         bbox_center = np.array([(x1 + x2) / 2, (y1 + y2) / 2])
@@ -176,26 +178,28 @@ def image_callback(msg):
         point = choose_point_on_edge(edges, int(x1), int(y1))
         if point is not None:
             edge_x, edge_y, depth = point
-            print("edge point is not none ...")
+            # print("edge point is not none ...")
             pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green  
         depth = get_depth_at(edge_x, edge_y)
         X, Y, Z = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)  # Convert to 3D     
               
-     
-        if class_name == "chair" and cnt == 0:
+        
+        if class_name == "chair":
             if "chair" not in obj_dict:
-                obj_dict["chair"] = {"position": (0.0, 0.0, 0.0), "detected": False}
-            obj_dict["chair"]["position"] = (X, Y, Z)
-            obj_dict["chair"]["detected"] = True
-            # print(f"Object: {class_name}")
-            font = pygame.font.Font(None, 36)                                                               # Create a font object (None means default font)
-            text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  # Render the text with XYZ
-            screen.blit(text_surface, (x1, y1 - 40))                                                        # Position the text just above the bounding box (adjust the offset as needed)
+                chair_buff[f'chair_{cnt}'] = {"position":(0, 0, 0)}
+            #     obj_dict["chair"] = {"position": (0.0, 0.0, 0.0), "detected": False}
+            chair_buff[f'chair_{cnt}'] = {"position":(X, Y, Z)}
+            # obj_dict["chair"]["position"] = (X, Y, Z)
+            # obj_dict["chair"]["detected"] = True
+            # font = pygame.font.Font(None, 36)
+            # text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  
+            # screen.blit(text_surface, (x1, y1 - 40))                                                        
         cnt = cnt + 1
 
+    print("chair_list: ", chair_buff)
 
 
-        pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                # Draw a rectangle
+        # pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                
         # pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)          # Draw red point
 
     pygame.display.update()
@@ -203,7 +207,7 @@ def image_callback(msg):
     if boxes is None or len(boxes) == 0:
 
         obj_dict = {}
-        print('boxes is None')
+        # print('boxe is None')
         return
 
 def imu_callback(msg: Imu):
@@ -221,6 +225,20 @@ def gt_pose_callback(msg):
     base_pose = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z,
                           msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z,
                           msg.pose.orientation.w])
+
+def map_callback(msg):
+    data = np.array(msg.data)
+    total_cells = data.size
+    known_cells = np.count_nonzero(data != -1)
+    occupied_cells = np.count_nonzero(data == 100)
+    free_cells = np.count_nonzero(data == 0)
+
+    coverage_percent = 100.0 * known_cells / total_cells
+
+    rospy.loginfo(f"Coverage: {coverage_percent:.2f}% | Known: {known_cells}/{total_cells} | Free: {free_cells} | Occupied: {occupied_cells}")
+
+    
+    
 rgb_img_list = []
 depth_img_list = []
 def update_list(img_list, new_frame):
@@ -356,6 +374,8 @@ rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback)
 rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, depth_callback) 
 pub_pos = rospy.Publisher('object_positions', String, queue_size=10)
 rospy.Subscriber("/tag_detections", AprilTagDetectionArray, tag_detections_callback)
+
+sub_map = rospy.Subscriber("/projected_map", OccupancyGrid, map_callback)
 
 
 
