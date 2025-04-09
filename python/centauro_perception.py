@@ -158,6 +158,7 @@ def image_callback(msg):
                                  [0, 0, 1]])
     confidence_threshold = 0.5    
     chair_buff ={}
+    buff_empty = True
     for box in boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()                                           # Convert box tensor to list of coordinates
         bbox_center = np.array([(x1 + x2) / 2, (y1 + y2) / 2])
@@ -186,20 +187,27 @@ def image_callback(msg):
         
         if class_name == "chair":
             if "chair" not in obj_dict:
-                chair_buff[f'chair_{cnt}'] = {"position":(0, 0, 0)}
-            #     obj_dict["chair"] = {"position": (0.0, 0.0, 0.0), "detected": False}
-            chair_buff[f'chair_{cnt}'] = {"position":(X, Y, Z)}
-            # obj_dict["chair"]["position"] = (X, Y, Z)
-            # obj_dict["chair"]["detected"] = True
-            # font = pygame.font.Font(None, 36)
-            # text_surface = font.render(f"{class_name} ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  
-            # screen.blit(text_surface, (x1, y1 - 40))                                                        
+                buff_empty = True
+                chair_buff[f'chair_{cnt}'] = {"position": (0, 0, 0), "draw": (0, 0, 0, 0)}
+                obj_dict["chair"] = {"position": (0.0, 0.0, 0.0), "detected": False}
+            else:
+                buff_empty = False
+                chair_buff[f'chair_{cnt}'] = {"position":(X, Y, Z), "draw": (x1, y1, x2, y2)}
         cnt = cnt + 1
+    print("chair_buff contents:", chair_buff)
 
-    print("chair_list: ", chair_buff)
+    if buff_empty is False:
+        max_x_chair = max(chair_buff.items(), key=lambda item: item[1]['position'][0])
+        obj_dict["chair"]["position"] = max_x_chair[1]['position']
+        X, Y, Z = max_x_chair[1]['position']
+        x1, y1, x2, y2 = max_x_chair[1]['draw']
+        obj_dict["chair"]["detected"] = True
+        font = pygame.font.Font(None, 36)
+        text_surface = font.render(f"chair: ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  
+        screen.blit(text_surface, (x1, y1 - 40)) 
+        pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                
 
 
-        # pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                
         # pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)          # Draw red point
 
     pygame.display.update()
