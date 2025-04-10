@@ -381,7 +381,7 @@ else:
 rospy.Subscriber("/D435_head_camera/color/image_raw", Image, image_callback) 
 rospy.Subscriber("/D435_head_camera/aligned_depth_to_color/image_raw", Image, depth_callback) 
 pub_pos = rospy.Publisher('object_positions', String, queue_size=10)
-rospy.Subscriber("/tag_detections", AprilTagDetectionArray, tag_detections_callback)
+# rospy.Subscriber("/tag_detections", AprilTagDetectionArray, tag_detections_callback)
 
 sub_map = rospy.Subscriber("/projected_map", OccupancyGrid, map_callback)
 
