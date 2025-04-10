@@ -156,7 +156,7 @@ def image_callback(msg):
     intrinsic_matrix = np.array([[focal_length_x, 0, center_x],                         # Replace with actual values
                                  [0, focal_length_y, center_y],
                                  [0, 0, 1]])
-    confidence_threshold = 0.5    
+    confidence_threshold = 0.65    
     chair_buff ={}
     buff_empty = True
     for box in boxes:
@@ -167,8 +167,8 @@ def image_callback(msg):
         cls = int(box.cls[0].item())
         class_name = model_det.names[cls]
 
-        # if conf < confidence_threshold:
-        #     continue                                                                    # Skip this detection
+        if conf < confidence_threshold:
+            continue                                                                    
  
         # depth = get_depth_at(bbox_center[0], bbox_center[1])
         # X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D     
