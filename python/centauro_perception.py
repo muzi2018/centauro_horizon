@@ -66,39 +66,67 @@ def depth_callback(msg):
         print(f"Error converting depth image: {e}")
 
 
-
-def detect_edges(image, x1, y1, x2, y2):
+def detect_edges(image, x1, y1, x2, y2, mask=None):
     """Detect edges within the bounding box using Canny edge detection."""
-    # Crop the region of interest (ROI) for the chair from the image
+    # Crop the region of interest (ROI) from the image
     roi = image[y1:y2, x1:x2]
-
+    
     # Convert to grayscale for edge detection
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-
-    # Apply Canny edge detection
-    edges = cv2.Canny(gray, 100, 200)
-
-    # Return the edge-detected image
+    
+    # Apply Gaussian blur to reduce noise
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    
+    # Detect edges using Canny edge detection
+    edges = cv2.Canny(blurred, 100, 200)
+    
+    # If mask is provided, apply it to edges
+    if mask is not None:
+        edges = cv2.bitwise_and(edges, edges, mask=mask)
+    
     return edges
+
+def create_chair_mask(frame, x1, y1, x2, y2):
+    """Create a mask for the chair region using YOLO detection."""
+    # Crop the chair region
+    chair_roi = frame[y1:y2, x1:x2]
+    
+    # Convert to grayscale
+    gray = cv2.cvtColor(chair_roi, cv2.COLOR_BGR2GRAY)
+    
+    # Create initial mask using thresholding
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    
+    # Apply morphological operations to refine the mask
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    mask = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    
+    return mask
 
 
 def choose_point_on_edge(edges, x1, y1):
     global depth_frame
-    edge_points = np.argwhere(edges > 0)  # Get coordinates of edge points (non-zero values)
+    
+    # Find all edge points
+    edge_points = np.argwhere(edges > 0)
     
     if edge_points.size == 0:
         return None
-    
-    # For each edge point, calculate the depth
+        
+    # For each edge point, check depth and return closest valid point
+    valid_points = []
     for point in edge_points:
         edge_y, edge_x = point
-        depth = get_depth_at(edge_x + x1, edge_y + y1)  # Get depth at the edge point
-
+        depth = get_depth_at(edge_x + x1, edge_y + y1)
+        
         if depth is not None and depth < 4.5:
-            # Return the point (x, y) in the image coordinates
-            return (edge_x + x1, edge_y + y1, depth)
-
-    return None  # Return None if no valid point found
+            valid_points.append((edge_x + x1, edge_y + y1, depth))
+            
+    if not valid_points:
+        return None
+        
+    # Return the point closest to the camera
+    return min(valid_points, key=lambda x: x[2])
 
 
 edge_x = 0
@@ -125,7 +153,8 @@ def tag_detections_callback(msg):
         euler_angles = tf.transformations.euler_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
         rospy.loginfo(f"Orientation (Euler angles): Roll = {euler_angles[0]:.2f}, Pitch = {euler_angles[1]:.2f}, Yaw = {euler_angles[2]:.2f}")
 
-
+EDGE_COLOR = (0, 255, 0)  # Green color for edges
+EDGE_WIDTH = 2           # Width of edge lines
 
 def image_callback(msg):
     global frame, obj_dict, edge_x, edge_y
@@ -156,7 +185,7 @@ def image_callback(msg):
     intrinsic_matrix = np.array([[focal_length_x, 0, center_x],                         # Replace with actual values
                                  [0, focal_length_y, center_y],
                                  [0, 0, 1]])
-    confidence_threshold = 0.65    
+    confidence_threshold = 0.8    
     chair_buff ={}
     buff_empty = True
     for box in boxes:
@@ -179,13 +208,47 @@ def image_callback(msg):
         point = choose_point_on_edge(edges, int(x1), int(y1))
         if point is not None:
             edge_x, edge_y, depth = point
+            pygame.draw.circle(screen, EDGE_COLOR, (int(edge_x), int(edge_y)), 5)
             # print("edge point is not none ...")
-            pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green  
+            # pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green  
         depth = get_depth_at(edge_x, edge_y)
         X, Y, Z = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)  # Convert to 3D     
-              
+        # Draw edges as lines
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for contour in contours:
+            if len(contour) >= 2:
+                for i in range(len(contour)-1):
+                    # Convert numpy array coordinates to integers
+                    pt1 = (int(contour[i][0][0] + x1), int(contour[i][0][1] + y1))
+                    pt2 = (int(contour[i+1][0][0] + x1), int(contour[i+1][0][1] + y1))
+                    pygame.draw.line(screen, EDGE_COLOR, pt1, pt2, EDGE_WIDTH)
         
         if class_name == "chair":
+            # Create mask for the chair region
+            chair_mask = create_chair_mask(frame, int(x1), int(y1), int(x2), int(y2))
+            
+            # Detect edges using the mask
+            edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2), chair_mask)
+            
+            # Choose a point on the edge with depth < 4.5 meters
+            point = choose_point_on_edge(edges, int(x1), int(y1))
+            if point is not None:
+                edge_x, edge_y, depth = point
+                pygame.draw.circle(screen, EDGE_COLOR, (int(edge_x), int(edge_y)), 5)
+                
+                # Draw edges as lines
+                contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                for contour in contours:
+                    if len(contour) >= 2:
+                        for i in range(len(contour)-1):
+                            pt1 = (int(contour[i][0][0] + x1), int(contour[i][0][1] + y1))
+                            pt2 = (int(contour[i+1][0][0] + x1), int(contour[i+1][0][1] + y1))
+                            pygame.draw.line(screen, EDGE_COLOR, pt1, pt2, EDGE_WIDTH)
+            
+            # Draw bounding box
+            pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)
+            
+            
             if "chair" not in obj_dict:
                 buff_empty = True
                 chair_buff[f'chair_{cnt}'] = {"position": (0, 0, 0), "draw": (0, 0, 0, 0)}
@@ -207,8 +270,15 @@ def image_callback(msg):
         screen.blit(text_surface, (x1, y1 - 40)) 
         pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                
 
+        # Apply edge detection on the detected chair region
+        edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2))
+        # Choose a point on the edge with depth < 4.5 meters
+        point = choose_point_on_edge(edges, int(x1), int(y1))
+        if point is not None:
+            edge_x, edge_y, depth = point
+            # print("edge point is not none ...")
+            pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green  
 
-        # pygame.draw.circle(screen, (255, 0, 0), (int(bbox_center[0]), int(bbox_center[1])), 5)          # Draw red point
 
     pygame.display.update()
         

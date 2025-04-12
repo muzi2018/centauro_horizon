@@ -7,11 +7,12 @@ Panels:
         - /Global Options1
         - /Status1
         - /TF1
+        - /TF1/Frames1
         - /PointCloud23
         - /MarkerArray1/Namespaces1
-        - /Map1
         - /Path1
-      Splitter Ratio: 0.5
+        - /RobotModel1
+      Splitter Ratio: 0.6704761981964111
     Tree Height: 829
   - Class: rviz/Selection
     Name: Selection
@@ -72,7 +73,7 @@ Visualization Manager:
         D435_head_camera_color_frame:
           Value: false
         D435_head_camera_color_optical_frame:
-          Value: false
+          Value: true
         D435_head_camera_depth_frame:
           Value: false
         D435_head_camera_depth_optical_frame:
@@ -496,7 +497,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 100
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -513,7 +514,7 @@ Visualization Manager:
         Value: Arrow
       Topic: /odom
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -590,12 +591,12 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: Map
-      Topic: /move_base/local_costmap/costmap
+      Topic: /projected_map
       Unreliable: false
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -648,7 +649,7 @@ Visualization Manager:
       Topic: /move_base/NavfnROS/plan
       Unreliable: false
       Value: true
-    - Alpha: 1
+    - Alpha: 0.10000000149011612
       Class: rviz/RobotModel
       Collision Enabled: false
       Enabled: true
@@ -1190,7 +1191,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 11.666472434997559
+      Distance: 9.141718864440918
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1198,17 +1199,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 4.298940658569336
-        Y: -0.2656978964805603
-        Z: -2.076777935028076
+        X: 3.5664026737213135
+        Y: -0.9051678776741028
+        Z: -1.5433419942855835
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8303982019424438
+      Pitch: 0.7553983926773071
       Target Frame: <Fixed Frame>
-      Yaw: 4.89356803894043
+      Yaw: 3.8885583877563477
     Saved: ~
 Window Geometry:
   Displays:
