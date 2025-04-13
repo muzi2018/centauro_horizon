@@ -66,13 +66,36 @@ def depth_callback(msg):
         print(f"Error converting depth image: {e}")
 
 
-def detect_edges(image, x1, y1, x2, y2, mask=None):
-    """Detect edges within the bounding box using Canny edge detection."""
+def detect_edges(image, x1, y1, x2, y2, mask=None, sam_mask=None):
+    """Detect edges within the bounding box using Canny edge detection.
+    Args:
+        image: Input image
+        x1, y1, x2, y2: Bounding box coordinates
+        mask: Optional binary mask
+        sam_mask: Optional SAM segmentation mask
+    Returns:
+        edges: Binary edge map
+    """
+    # Validate input image
+    if image is None or not isinstance(image, np.ndarray):
+        return None
+    
     # Crop the region of interest (ROI) from the image
-    roi = image[y1:y2, x1:x2]
+    try:
+        roi = image[y1:y2, x1:x2]
+    except IndexError:
+        print(f"Invalid ROI coordinates: ({x1}, {y1}, {x2}, {y2})")
+        return None
+    
+    if roi.size == 0:
+        return None
     
     # Convert to grayscale for edge detection
-    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    try:
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    except cv2.error as e:
+        print(f"Error converting to grayscale: {e}")
+        return None
     
     # Apply Gaussian blur to reduce noise
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -80,9 +103,25 @@ def detect_edges(image, x1, y1, x2, y2, mask=None):
     # Detect edges using Canny edge detection
     edges = cv2.Canny(blurred, 100, 200)
     
-    # If mask is provided, apply it to edges
+    # Apply masks if provided
     if mask is not None:
-        edges = cv2.bitwise_and(edges, edges, mask=mask)
+        # Ensure mask is the same size as edges
+        resized_mask = cv2.resize(mask, (edges.shape[1], edges.shape[0]))
+        edges = cv2.bitwise_and(edges, edges, mask=resized_mask)
+    
+    if sam_mask is not None:
+        # Ensure SAM mask is in correct format
+        if sam_mask is not None:
+            sam_mask = np.array(sam_mask, dtype=np.float32)
+            # Normalize SAM mask to [0,1] range
+            sam_mask = sam_mask / sam_mask.max() if sam_mask.max() > 0 else sam_mask
+            # Convert to binary mask
+            _, sam_mask = cv2.threshold(sam_mask, 0.5, 255, cv2.THRESH_BINARY)
+            sam_mask = sam_mask.astype(np.uint8)
+            
+            # Ensure SAM mask is the same size as edges
+            resized_sam_mask = cv2.resize(sam_mask, (edges.shape[1], edges.shape[0]))
+            edges = cv2.bitwise_and(edges, edges, mask=resized_sam_mask)
     
     return edges
 
@@ -186,6 +225,7 @@ def image_callback(msg):
                                  [0, focal_length_y, center_y],
                                  [0, 0, 1]])
     confidence_threshold = 0.8    
+    results_sam = []
     chair_buff ={}
     buff_empty = True
     for box in boxes:
@@ -202,48 +242,42 @@ def image_callback(msg):
         # depth = get_depth_at(bbox_center[0], bbox_center[1])
         # X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D     
         
-        # Apply edge detection on the detected chair region
         edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2))
-        # Choose a point on the edge with depth < 4.5 meters
         point = choose_point_on_edge(edges, int(x1), int(y1))
         if point is not None:
             edge_x, edge_y, depth = point
-            pygame.draw.circle(screen, EDGE_COLOR, (int(edge_x), int(edge_y)), 5)
-            # print("edge point is not none ...")
-            # pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green  
         depth = get_depth_at(edge_x, edge_y)
         X, Y, Z = pixel_to_3d(edge_x, edge_y, depth, intrinsic_matrix)  # Convert to 3D     
-        # Draw edges as lines
-        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        for contour in contours:
-            if len(contour) >= 2:
-                for i in range(len(contour)-1):
-                    # Convert numpy array coordinates to integers
-                    pt1 = (int(contour[i][0][0] + x1), int(contour[i][0][1] + y1))
-                    pt2 = (int(contour[i+1][0][0] + x1), int(contour[i+1][0][1] + y1))
-                    pygame.draw.line(screen, EDGE_COLOR, pt1, pt2, EDGE_WIDTH)
         
         if class_name == "chair":
+            results_sam = model_sam(frame, bboxes=[x1, y1, x2, y2])  # Append the result
+            sam_mask = None
+            for i, mask in enumerate(results_sam[0].masks.xy):
+                if mask is not None:
+                    sam_mask = np.array(mask, np.int32)
+                    break                
+                # depth = get_mask_depth_average(mask, depth_frame, num_samples=100)
+                # X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D
             # Create mask for the chair region
             chair_mask = create_chair_mask(frame, int(x1), int(y1), int(x2), int(y2))
             
             # Detect edges using the mask
-            edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2), chair_mask)
+            edges = detect_edges(frame, int(x1), int(y1), int(x2), int(y2), chair_mask, sam_mask)
             
             # Choose a point on the edge with depth < 4.5 meters
             point = choose_point_on_edge(edges, int(x1), int(y1))
-            if point is not None:
-                edge_x, edge_y, depth = point
-                pygame.draw.circle(screen, EDGE_COLOR, (int(edge_x), int(edge_y)), 5)
+            # if point is not None:
+            #     edge_x, edge_y, depth = point
+            #     # pygame.draw.circle(screen, EDGE_COLOR, (int(edge_x), int(edge_y)), 5)
                 
-                # Draw edges as lines
-                contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                for contour in contours:
-                    if len(contour) >= 2:
-                        for i in range(len(contour)-1):
-                            pt1 = (int(contour[i][0][0] + x1), int(contour[i][0][1] + y1))
-                            pt2 = (int(contour[i+1][0][0] + x1), int(contour[i+1][0][1] + y1))
-                            pygame.draw.line(screen, EDGE_COLOR, pt1, pt2, EDGE_WIDTH)
+            #     # Draw edges as lines
+            #     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            #     for contour in contours:
+            #         if len(contour) >= 2:
+            #             for i in range(len(contour)-1):
+            #                 pt1 = (int(contour[i][0][0] + x1), int(contour[i][0][1] + y1))
+            #                 pt2 = (int(contour[i+1][0][0] + x1), int(contour[i+1][0][1] + y1))
+            #                 pygame.draw.line(screen, EDGE_COLOR, pt1, pt2, EDGE_WIDTH)
             
             # Draw bounding box
             pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)
@@ -329,6 +363,8 @@ def update_list(img_list, new_frame):
 
 bridge = CvBridge()
 model_det = YOLO('yolo12n.pt') 
+model_sam = SAM("sam_b.pt")
+
 obj_dict = {}
 
 pygame.init()
