@@ -145,27 +145,24 @@ def create_chair_mask(frame, x1, y1, x2, y2):
 
 def choose_point_on_edge(edges, x1, y1):
     global depth_frame
-    
     # Find all edge points
     edge_points = np.argwhere(edges > 0)
-    
     if edge_points.size == 0:
         return None
-        
-    # For each edge point, check depth and return closest valid point
+    
+    # For each edge point, check depth and return point with minimum y coordinate
     valid_points = []
     for point in edge_points:
         edge_y, edge_x = point
         depth = get_depth_at(edge_x + x1, edge_y + y1)
-        
         if depth is not None and depth < 4.5:
             valid_points.append((edge_x + x1, edge_y + y1, depth))
-            
+    
     if not valid_points:
         return None
-        
-    # Return the point closest to the camera
-    return min(valid_points, key=lambda x: x[2])
+    
+    # Return the point with minimum y coordinate
+    return min(valid_points, key=lambda x: x[1])
 
 
 edge_x = 0
@@ -310,7 +307,6 @@ def image_callback(msg):
         point = choose_point_on_edge(edges, int(x1), int(y1))
         if point is not None:
             edge_x, edge_y, depth = point
-            # print("edge point is not none ...")
             pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green  
 
 
