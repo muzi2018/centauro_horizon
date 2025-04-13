@@ -277,7 +277,7 @@ def image_callback(msg):
             #                 pygame.draw.line(screen, EDGE_COLOR, pt1, pt2, EDGE_WIDTH)
             
             # Draw bounding box
-            pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)
+            # pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)
             
             
             if "chair" not in obj_dict:
