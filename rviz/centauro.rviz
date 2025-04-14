@@ -7,9 +7,8 @@ Panels:
         - /Global Options1
         - /Status1
         - /TF1
-        - /TF1/Frames1
-        - /PointCloud23
         - /MarkerArray1/Namespaces1
+        - /Map1
         - /Path1
         - /RobotModel1
       Splitter Ratio: 0.6704761981964111
@@ -194,6 +193,8 @@ Visualization Manager:
           Value: true
         chair_2:
           Value: true
+        chair_3:
+          Value: true
         contact_1:
           Value: false
         contact_2:
@@ -271,6 +272,8 @@ Visualization Manager:
           chair_1:
             {}
           chair_2:
+            {}
+          chair_3:
             {}
           pelvis:
             D435i_camera_bottom_screw_frame:
@@ -592,16 +595,16 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
-    - Alpha: 0.699999988079071
+    - Alpha: 0.4000000059604645
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Map
       Topic: /projected_map
       Unreliable: false
       Use Timestamp: false
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -1196,7 +1199,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 12.543999671936035
+      Distance: 11.836921691894531
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1204,9 +1207,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 2.3790080547332764
-        Y: -0.35480818152427673
-        Z: 0.7257188558578491
+        X: 2.4258668422698975
+        Y: 0.37556570768356323
+        Z: 0.7336544394493103
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -1234,5 +1237,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1920
-  X: 239
-  Y: 98
+  X: 41
+  Y: 104
