@@ -221,7 +221,7 @@ def image_callback(msg):
     intrinsic_matrix = np.array([[focal_length_x, 0, center_x],                         # Replace with actual values
                                  [0, focal_length_y, center_y],
                                  [0, 0, 1]])
-    confidence_threshold = 0.8    
+    confidence_threshold = 0.7    
     results_sam = []
     chair_buff ={}
     buff_empty = True
