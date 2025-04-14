@@ -145,24 +145,24 @@ def create_chair_mask(frame, x1, y1, x2, y2):
 
 def choose_point_on_edge(edges, x1, y1):
     global depth_frame
-    # Find all edge points
     edge_points = np.argwhere(edges > 0)
     if edge_points.size == 0:
         return None
-    
-    # For each edge point, check depth and return point with minimum y coordinate
+
     valid_points = []
     for point in edge_points:
         edge_y, edge_x = point
-        depth = get_depth_at(edge_x + x1, edge_y + y1)
+        global_x = edge_x + x1
+        global_y = edge_y + y1
+        depth = get_depth_at(global_x, global_y)
         if depth is not None and depth < 4.5:
-            valid_points.append((edge_x + x1, edge_y + y1, depth))
-    
+            valid_points.append((global_x, global_y, depth))
+
     if not valid_points:
         return None
-    
-    # Return the point with minimum y coordinate
-    return min(valid_points, key=lambda x: x[1])
+
+    # Return point with minimum x, then y
+    return min(valid_points, key=lambda p: (p[1], -p[0]))
 
 
 edge_x = 0

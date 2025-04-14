@@ -140,10 +140,6 @@ Visualization Manager:
           Value: false
         T265_camera_pose_frame:
           Value: false
-        Tag_0:
-          Value: true
-        Tag_1:
-          Value: true
         ankle1_1:
           Value: false
         ankle1_2:
@@ -194,6 +190,10 @@ Visualization Manager:
           Value: false
         base_link:
           Value: false
+        chair_1:
+          Value: true
+        chair_2:
+          Value: true
         contact_1:
           Value: false
         contact_2:
@@ -261,13 +261,17 @@ Visualization Manager:
         world:
           Value: true
       Marker Alpha: 1
-      Marker Scale: 1
+      Marker Scale: 2
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
         map:
+          chair_1:
+            {}
+          chair_2:
+            {}
           pelvis:
             D435i_camera_bottom_screw_frame:
               D435i_camera_link:
@@ -377,10 +381,7 @@ Visualization Manager:
                       D435_head_camera_depth_frame:
                         D435_head_camera_color_frame:
                           D435_head_camera_color_optical_frame:
-                            Tag_0:
-                              {}
-                            Tag_1:
-                              {}
+                            {}
                         D435_head_camera_depth_optical_frame:
                           {}
                         D435_head_camera_left_ir_frame:
@@ -1195,7 +1196,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 10
+      Distance: 12.543999671936035
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1203,17 +1204,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: 2.3790080547332764
+        Y: -0.35480818152427673
+        Z: 0.7257188558578491
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.0503978729248047
+      Pitch: 1.4947963953018188
       Target Frame: <Fixed Frame>
-      Yaw: 3.0454044342041016
+      Yaw: 3.220407247543335
     Saved: ~
 Window Geometry:
   Displays:
@@ -1234,4 +1235,4 @@ Window Geometry:
     collapsed: false
   Width: 1920
   X: 239
-  Y: 130
+  Y: 98
