@@ -189,12 +189,6 @@ Visualization Manager:
           Value: false
         base_link:
           Value: false
-        chair_1:
-          Value: true
-        chair_2:
-          Value: true
-        chair_3:
-          Value: true
         contact_1:
           Value: false
         contact_2:
@@ -262,19 +256,13 @@ Visualization Manager:
         world:
           Value: true
       Marker Alpha: 1
-      Marker Scale: 2
+      Marker Scale: 2.5
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
         map:
-          chair_1:
-            {}
-          chair_2:
-            {}
-          chair_3:
-            {}
           pelvis:
             D435i_camera_bottom_screw_frame:
               D435i_camera_link:
@@ -1199,7 +1187,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 11.836921691894531
+      Distance: 14.049280166625977
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1207,17 +1195,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 2.4258668422698975
-        Y: 0.37556570768356323
-        Z: 0.7336544394493103
+        X: 3.078787326812744
+        Y: 0.25499674677848816
+        Z: 0.7172629833221436
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4947963953018188
+      Pitch: 1.4503976106643677
       Target Frame: <Fixed Frame>
-      Yaw: 3.220407247543335
+      Yaw: 3.210404872894287
     Saved: ~
 Window Geometry:
   Displays:
@@ -1237,5 +1225,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1920
-  X: 41
-  Y: 104
+  X: 442
+  Y: 41
