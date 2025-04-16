@@ -256,6 +256,8 @@ def image_callback(msg):
                 # depth = get_mask_depth_average(mask, depth_frame, num_samples=100)
                 # X, Y, Z = pixel_to_3d(bbox_center[0], bbox_center[1], depth, intrinsic_matrix)  # Convert to 3D
             # Create mask for the chair region
+            
+
             chair_mask = create_chair_mask(frame, int(x1), int(y1), int(x2), int(y2))
             
             # Detect edges using the mask
@@ -263,18 +265,18 @@ def image_callback(msg):
             
             # Choose a point on the edge with depth < 4.5 meters
             point = choose_point_on_edge(edges, int(x1), int(y1))
-            # if point is not None:
-            #     edge_x, edge_y, depth = point
-            #     # pygame.draw.circle(screen, EDGE_COLOR, (int(edge_x), int(edge_y)), 5)
+            if point is not None:
+                edge_x, edge_y, depth = point
+                # pygame.draw.circle(screen, EDGE_COLOR, (int(edge_x), int(edge_y)), 5)
                 
-            #     # Draw edges as lines
-            #     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            #     for contour in contours:
-            #         if len(contour) >= 2:
-            #             for i in range(len(contour)-1):
-            #                 pt1 = (int(contour[i][0][0] + x1), int(contour[i][0][1] + y1))
-            #                 pt2 = (int(contour[i+1][0][0] + x1), int(contour[i+1][0][1] + y1))
-            #                 pygame.draw.line(screen, EDGE_COLOR, pt1, pt2, EDGE_WIDTH)
+                # Draw edges as lines
+                # contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                # for contour in contours:
+                #     if len(contour) >= 2:
+                #         for i in range(len(contour)-1):
+                #             pt1 = (int(contour[i][0][0] + x1), int(contour[i][0][1] + y1))
+                #             pt2 = (int(contour[i+1][0][0] + x1), int(contour[i+1][0][1] + y1))
+                #             pygame.draw.line(screen, EDGE_COLOR, pt1, pt2, EDGE_WIDTH)
             
             # Draw bounding box
             # pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)
@@ -297,7 +299,7 @@ def image_callback(msg):
         x1, y1, x2, y2 = max_x_chair[1]['draw']
         obj_dict["chair"]["detected"] = True
         font = pygame.font.Font(None, 36)
-        text_surface = font.render(f"chair: ({X:.2f}, {Y:.2f}, {Z:.2f})", True, (255, 255, 255))  
+        text_surface = font.render(f"chair", True, (255, 255, 255))  
         screen.blit(text_surface, (x1, y1 - 40)) 
         pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)                
 
@@ -307,7 +309,41 @@ def image_callback(msg):
         point = choose_point_on_edge(edges, int(x1), int(y1))
         if point is not None:
             edge_x, edge_y, depth = point
-            pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green  
+            # pygame.draw.circle(screen, (0, 255, 0), (int(edge_x), int(edge_y)), 5)  # Draw the selected point in green  
+
+        results_sam = model_sam(frame, bboxes=[x1, y1, x2, y2])  # Append the result
+        sam_mask = None
+        for i, mask in enumerate(results_sam[0].masks.xy):
+            if mask is not None:
+                sam_mask = np.array(mask, np.int32)
+                break    
+        if sam_mask is not None:
+            # Make a copy to draw on
+            frame_with_mask = frame.copy()
+
+            # Make sure sam_mask is reshaped properly: (N, 1, 2)
+            contour = sam_mask.reshape((-1, 1, 2)).astype(np.int32)
+
+            # Draw contour outline
+            cv2.polylines(frame_with_mask, [contour], isClosed=True, color=(255, 0, 255), thickness=2)
+
+            # Optionally fill the mask with transparency
+            overlay = frame_with_mask.copy()
+            cv2.fillPoly(overlay, [contour], color=(255, 0, 255))
+            alpha = 0.4  # Transparency factor
+            cv2.addWeighted(overlay, alpha, frame_with_mask, 1 - alpha, 0, frame_with_mask)
+
+            # Convert to RGB and transpose for Pygame
+            frame_vis = np.flip(frame_with_mask, axis=2)              
+            frame_vis = np.transpose(frame_vis, (1, 0, 2))            
+            surface = pygame.surfarray.make_surface(frame_vis)      
+            text_surface = font.render(f"chair", True, (255, 255, 255))  
+            screen.blit(text_surface, (x1, y1 - 40)) 
+            pygame.draw.rect(screen, RED, (int(x1), int(y1), int(x2 - x1), int(y2 - y1)), 5)      
+            screen.blit(surface, (0, 0))
+
+            
+
 
 
     pygame.display.update()
